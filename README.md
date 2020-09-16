@@ -1,2 +1,2 @@
 # arch
-System architecture tools.
+System architecture tools for big quantum photonics.
