@@ -10,6 +10,7 @@ System architecture tools for big quantum photonics.
  * Global constants are in upper-case, `LIKE_THIS`.
  * Keep names short
  * Give and take credit where it's due
+ * Initial and date your FIXME and TODO notes
 
 ## philosophy
 
