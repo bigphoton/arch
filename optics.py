@@ -197,11 +197,11 @@ class graphic:
 	tx: write text (text)
 	"""
 	
-	debug_speed = 3
+	debug_speed = 1
 	
 	def __init__(self, path = [], origin = (0,0), angle = 0, debug_mode = False):
 		
-		self.__path = path
+		self.path = path
 		
 		self.origin = origin
 		self.angle = angle
@@ -276,11 +276,30 @@ class graphic:
 			elif c == "bk":
 				self.turtle.bk(a)
 			elif c == "ox":
-				self.turtle.setx(self.origin[0] + a)
-				# FIXME: Doesn't respect graphic.angle
-# 				self.turtle.setpos( np.cos(np.radians(self.angle)) * (self.origin[0] + a), np.cos(np.radians(self.angle)) * (self.origin[1] + self.turtle.pos[1]) )
+				# FIXME: Simplify `ox` and `oy` commands.
+				#  They use the most straightforward algorithm, but it's not efficient. -JWS 22/09/20
+				angle = np.radians(self.angle)
+				x0,y0 = self.turtle.pos() - self.origin
+				r0 = np.sqrt(x0**2 + y0**2)
+				angle0 = np.arctan2(y0,x0)
+				x1,y1 = r0*np.cos(angle0 - angle), r0*np.sin(angle0 - angle)
+				x2,y2 = a, y1
+				r2 = np.sqrt(x2**2 + y2**2)
+				angle2 = np.arctan2(y2,x2)
+				x3,y3 = r2*np.cos(angle2 + angle), r2*np.sin(angle2 + angle)
+				self.turtle.setpos( x3 + self.origin[0], y3 + self.origin[1] )
+				
 			elif c == "oy":
-				self.turtle.sety(self.origin[1] + a)
+				angle = np.radians(self.angle)
+				x0,y0 = self.turtle.pos() - self.origin
+				r0 = np.sqrt(x0**2 + y0**2)
+				angle0 = np.arctan2(y0,x0)
+				x1,y1 = r0*np.cos(angle0 - angle), r0*np.sin(angle0 - angle)
+				x2,y2 = x1, a
+				r2 = np.sqrt(x2**2 + y2**2)
+				angle2 = np.arctan2(y2,x2)
+				x3,y3 = r2*np.cos(angle2 + angle), r2*np.sin(angle2 + angle)
+				self.turtle.setpos( x3 + self.origin[0], y3 + self.origin[1] )
 			elif c == "oa":
 				self.turtle.seth(self.angle + a)
 			elif c == "wi":
@@ -480,9 +499,18 @@ if __name__ == "__main__":
 		p.extend(['bk',l])
 	
 	
+	p.extend(['pu',None])
+	p.extend(['ox',0])
+	p.extend(['oy',0])
+	p.extend(['tx',"Yo1"])
+	
+	
 	
 	g1 = graphic(path = p, origin = (150,100), angle = 15)
 	g2 = graphic(path = p, origin = (0,0), angle = 0)
+	
+	g1.debug_mode = False
+	g2.debug_mode = False
 	
 	g1.draw()
 	g2.draw()
