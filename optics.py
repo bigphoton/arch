@@ -49,17 +49,21 @@ class port:
 	connected_ports: list of other port instances connected to this one
 	max_connections: maximum number of ports connected to this one
 	value: the value emitted by the output port and received by the input port in a connection
+	value_info: dict containing information about value (e.g. model type, dimensionality, etc.)
 	"""
 	
-	def __init__(self, name, type, is_input, owner, max_connections = 1):
+	def __init__(self, name, type, is_input, owner, max_connections = 1, position=(0,0), angle=0):
 		
 		self.name = name
 		self.type = type
 		self.is_input = is_input
 		self.connected_ports = set()
 		self.__value = None
+		self.value_info = dict()
 		self.max_connections = max_connections
-		self.owner = None
+		self.owner = owner
+		
+		self.graphic = generic_port(name=name,is_input=is_input)
 	
 	def connect_to(self, other_port):
 		
@@ -178,7 +182,7 @@ class graphic:
 	Class encapsulating graphic and glyph drawing.
 	
 	path: list of path commands (odd elements) and parameters (even elements)
-	origin: origin of drawing commands
+	position: origin of drawing commands
 	angle: angle of drawing commands
 	
 	graphical_attributes: attributes watched for updates to trigger redrawing
@@ -209,12 +213,12 @@ class graphic:
 	
 	debug_speed = 1
 	
-	def __init__(self, path = [], origin = (0,0), angle = 0, debug = False):
+	def __init__(self, path = [], position = (0,0), angle = 0, debug = False):
 		
 		# Attributes which cause a redraw
 		self.graphical_attributes = []
 		
-		self.origin = origin
+		self.position = position
 		self.angle = angle
 		
 		self.debug = debug
@@ -229,7 +233,7 @@ class graphic:
 		self.path = path
 		
 		# Start watching attributes
-		self.graphical_attributes.extend(["origin", "angle", "path", "debug"])
+		self.graphical_attributes.extend(["position", "angle", "path", "debug"])
 		
 		# Draw self
 		self.draw()
@@ -279,7 +283,7 @@ class graphic:
 		"""
 		self.turtle.reset()
 		self.turtle.pu()
-		self.turtle.goto(self.origin)
+		self.turtle.goto(self.position)
 		self.turtle.lt(self.angle)
 		self.turtle.pd()
 		
@@ -316,7 +320,7 @@ class graphic:
 				#  They use the most straightforward algorithm, but it's not efficient. 
 				#   -JWS 22/09/20
 				angle = np.radians(self.angle)
-				x0,y0 = self.turtle.pos() - self.origin
+				x0,y0 = self.turtle.pos() - self.position
 				r0 = np.sqrt(x0**2 + y0**2)
 				angle0 = np.arctan2(y0,x0)
 				x1,y1 = r0*np.cos(angle0 - angle), r0*np.sin(angle0 - angle)
@@ -324,11 +328,11 @@ class graphic:
 				r2 = np.sqrt(x2**2 + y2**2)
 				angle2 = np.arctan2(y2,x2)
 				x3,y3 = r2*np.cos(angle2 + angle), r2*np.sin(angle2 + angle)
-				self.turtle.setpos( x3 + self.origin[0], y3 + self.origin[1] )
+				self.turtle.setpos( x3 + self.position[0], y3 + self.position[1] )
 				
 			elif c == "oy":
 				angle = np.radians(self.angle)
-				x0,y0 = self.turtle.pos() - self.origin
+				x0,y0 = self.turtle.pos() - self.position
 				r0 = np.sqrt(x0**2 + y0**2)
 				angle0 = np.arctan2(y0,x0)
 				x1,y1 = r0*np.cos(angle0 - angle), r0*np.sin(angle0 - angle)
@@ -336,7 +340,7 @@ class graphic:
 				r2 = np.sqrt(x2**2 + y2**2)
 				angle2 = np.arctan2(y2,x2)
 				x3,y3 = r2*np.cos(angle2 + angle), r2*np.sin(angle2 + angle)
-				self.turtle.setpos( x3 + self.origin[0], y3 + self.origin[1] )
+				self.turtle.setpos( x3 + self.position[0], y3 + self.position[1] )
 			elif c == "oa":
 				self.turtle.seth(self.angle + a)
 			elif c == "wi":
@@ -370,15 +374,13 @@ class generic_box(graphic):
 	box_linewidth = 2
 	
 	
-	def __init__(self, name="", n_in=2, n_out=2, **kwargs):
+	def __init__(self, name="", **kwargs):
 	
 		graphic.__init__(self, **kwargs)
 		
 		self.name = name
-		self.n_in = n_in
-		self.n_out = n_out
 		
-		self.graphical_attributes.extend(["name", "n_in", "n_out"])
+		self.graphical_attributes.extend(["name"])
 		
 		self.update_path()
 	
@@ -406,34 +408,8 @@ class generic_box(graphic):
 		p.extend(['ox',-w/2])
 		p.extend(['oy',+h/2])
 		p.extend(['ox',+w/2])
-	
-		# Draw ports
-		p.extend(['pu',None])
-		p.extend(['wi',1])
-	
-		# Output ports (right side)
-		p.extend(['ox',+w/2])
-		p.extend(['oa',0])
-	
-		for n in range(self.n_out):
-			p.extend(['oy',-h/2 + (n+1/2)*h/self.n_out])
-			p.extend(['pd',None])
-			p.extend(['fd',l])
-			p.extend(['pu',None])
-			p.extend(['bk',l])
-	
-		# Input ports (left side)
-		p.extend(['ox',-w/2])
-		p.extend(['oa',180])
-	
-		for n in range(self.n_in):
-			p.extend(['oy',-h/2 + (n+1/2)*h/self.n_in])
-			p.extend(['pd',None])
-			p.extend(['fd',l])
-			p.extend(['pu',None])
-			p.extend(['bk',l])
-	
-	
+		
+		# Draw name text
 		p.extend(['pu',None])
 		p.extend(['ox',0])
 		p.extend(['oy',-6])
@@ -490,7 +466,6 @@ class generic_port(graphic):
 		p.extend(['tx',self.name])
 		
 		
-		print (p)
 		self.path = p
 	
 	
@@ -504,8 +479,9 @@ class base_optic:
 	
 	Subclasses should implement:
 	----------------------------
-	
 	 * reference_prefix: str, class property
+	 * graphic: graphic
+	 * ports: set
 	 * model_parameters: dict
 	 * model_matrix: list(list)
 	 * supported_models: list
@@ -530,9 +506,6 @@ class base_optic:
 	
 	def __init__(self):
 		
-		# Run subclass define routine
-		self.define()
-		
 		# Handle reference designator generation
 		try:
 			existing_indices = base_optic.reference_designators[self.reference_prefix]
@@ -546,11 +519,14 @@ class base_optic:
 		
 		self.reference_designator = self.reference_prefix + str(self.reference_index)
 		
+		# Run subclass define routine
+		self.define()
+		
 		# Handle graphic
 		
 		# Set default graphic if none present
 		if not hasattr(self, "graphic"):
-			self.graphic = generic_box(self.reference_designator, len(self.in_ports), len(self.out_ports) )
+			self.graphic = generic_box(self.reference_designator)
 		
 		
 	
@@ -569,7 +545,7 @@ class base_optic:
 		Convenience access to a filtered list of output ports only
 		"""
 		return {p for p in self.ports if p.is_output}
-		
+	
 	
 	def define(self):
 		"""
@@ -624,7 +600,31 @@ if __name__ == "__main__":
 		reference_prefix = "B"
 		
 		def define(self):
-			pass
+			
+			# FIXME: this is a placeholder; needs to be implemented by the class -JWS 23/09/2020
+			self.position = (0,0)
+			
+			p = set()
+			w = generic_box.box_width
+			h = generic_box.box_height
+			x0,y0 = self.position
+			
+			n_in = 2
+			for n in range(n_in):
+				print ("IN"+str(n))
+				print ((-w/2+x0,-h/2+(n+1/2)*h/n_in+y0))
+				p.add(port("IN"+str(n), "optical", True,  self, 1, (-w/2+x0,-h/2+(n+1/2)*h/n_in+y0), 0))
+			
+			n_out = 2
+			for n in range(n_out):
+				print ("OUT"+str(n))
+				print ((+w/2+x0,-h/2+(n+1/2)*h/n_out+y0))
+				p.add(port("OUT"+str(n), "optical", False, self, 1, (+w/2+x0,-h/2+(n+1/2)*h/n_out+y0), 0))
+			
+			self.ports = p
+			
+			self.graphic = generic_box(self.reference_designator, position=self.position)
+			
 		
 		def model_matrix(self, reflectivity = 0.5):
 			th = np.arctan(reflectivity)
@@ -636,11 +636,11 @@ if __name__ == "__main__":
 # 	w = switch()
 # 	bsa = beamsplitter()
 # 	i = switch()
-# 	bs = beamsplitter()
+	bs = beamsplitter()
 	
 # 	g = generic_box("H100", 2, 2)
-	p0 = generic_port("IN0", True, origin=(0,0), debug = False)
-	p1 = generic_port("IN1", True, origin=(0,50), debug = False)
-	p2 = generic_port("OUT0", False, origin=(0,100), debug = False)
+# 	p0 = generic_port("IN0", True, position=(0,0), debug = False)
+# 	p1 = generic_port("IN1", True, position=(0,50), debug = False)
+# 	p2 = generic_port("OUT0", False, position=(0,100), debug = False)
 	
 	turtle.exitonclick()
