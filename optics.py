@@ -253,7 +253,7 @@ class graphic:
 			self.turtle.hideturtle()
 			self.turtle.speed(0)
 		
-		self.turtle.dot(10)
+# 		self.turtle.dot(10)
 		
 		for i in range(int(len(self.path)/2)):
 			
@@ -305,7 +305,7 @@ class graphic:
 			elif c == "wi":
 				self.turtle.width(a)
 			elif c == "tx":
-				self.turtle.write(a)
+				self.turtle.write(a, move=False, align='center', font=('Arial', 12, 'bold') )
 		
 		turtle.update()
 		
@@ -451,15 +451,15 @@ if __name__ == "__main__":
 # 	i = switch()
 # 	bs = beamsplitter()
 	
-	w = 100
-	h = 200
-	l = 20
+	w = 50
+	h = 100
+	l = 10
 	ni = 3
-	no = 2
+	no = 5
 	
 	p = []
 	
-	p.extend(['wi',3])
+	p.extend(['wi',2])
 	
 	# Draw box
 	p.extend(['pu',None])
@@ -501,7 +501,7 @@ if __name__ == "__main__":
 	
 	p.extend(['pu',None])
 	p.extend(['ox',0])
-	p.extend(['oy',0])
+	p.extend(['oy',-6])
 	p.extend(['tx',"Yo1"])
 	
 	
