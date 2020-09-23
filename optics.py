@@ -201,7 +201,8 @@ class graphic:
 	
 	def __init__(self, path = [], origin = (0,0), angle = 0, debug_mode = False):
 		
-		self.path = path
+		# Attributes which cause a redraw
+		self.graphical_attributes = []
 		
 		self.origin = origin
 		self.angle = angle
@@ -213,33 +214,59 @@ class graphic:
 		turtle.tracer(0,0)
 		# Instantiate new turtle for our use
 		self.turtle = turtle.Turtle()
+		
+		# Set path
+		self.path = path
+		
+		# Start watching attributes
+		self.graphical_attributes.extend(["origin", "angle", "path", "debug_mode"])
+		
+		# Draw self
+		self.draw()
 	
-	@property
-	def path(self):
-		return self.__path
+	def __setattr__(self, name, value):
+		# Store the original version of this attribute
+		try:
+			old_value = self.__getattribute__(name)
+		except:
+			old_value = None
+		
+		# Set the attribute in super
+		object.__setattr__(self, name, value)
+		
+		# If we are setting 'path', do checks, and do not re-update the path
+		if name == "path":
+			# Check path
+			if len(value) % 2:
+				raise RuntimeError("New path has an odd number of elements.")
+		
+			# Check each element of path
+			for i in range(int(len(value)/2)):
+				c = value[2*i]
+				if type(c) != str:
+					raise RuntimeError("Command at position {:} in path is invalid.".format(2*i))
+			
+			# Draw
+			self.draw()
+
+		# If the attribute is on our redraw watch list and is changed, update path
+		#  Updating path forces a redraw via the code above
+		elif name in self.graphical_attributes and value != old_value:
+			self.update_path()
 	
-	@path.setter
-	def path(self,new_path):
-		
-		# Check path
-		if len(new_path) % 2:
-			raise RuntimeError("New path has an odd number of elements.")
-		
-		# Check each element of path
-		for i in range(int(len(new_path)/2)):
-			c = new_path[2*i]
-			if type(c) != str:
-				raise RuntimeError("Command at position {:} in path is invalid.".format(2*i))
-		
-		# Set
-		self.__path = new_path
+	
+	def update_path(self):
+		"""
+		Subclasses should override this method to update their paths when things change.
+		This method should only update the path, not call graphics.draw().
+		"""
+		pass
 		
 	
 	def draw(self):
 		"""
 		Redraw graphic based on encoded path.
 		"""
-		
 		self.turtle.reset()
 		self.turtle.pu()
 		self.turtle.goto(self.origin)
@@ -249,11 +276,10 @@ class graphic:
 		if self.debug_mode:
 			turtle.tracer(1,0)
 			self.turtle.speed(graphic.debug_speed)
+			self.turtle.dot(10,'blue')
 		else:
 			self.turtle.hideturtle()
 			self.turtle.speed(0)
-		
-# 		self.turtle.dot(10)
 		
 		for i in range(int(len(self.path)/2)):
 			
@@ -277,7 +303,8 @@ class graphic:
 				self.turtle.bk(a)
 			elif c == "ox":
 				# FIXME: Simplify `ox` and `oy` commands.
-				#  They use the most straightforward algorithm, but it's not efficient. -JWS 22/09/20
+				#  They use the most straightforward algorithm, but it's not efficient. 
+				#   -JWS 22/09/20
 				angle = np.radians(self.angle)
 				x0,y0 = self.turtle.pos() - self.origin
 				r0 = np.sqrt(x0**2 + y0**2)
@@ -305,16 +332,101 @@ class graphic:
 			elif c == "wi":
 				self.turtle.width(a)
 			elif c == "tx":
-				self.turtle.write(a, move=False, align='center', font=('Arial', 12, 'bold') )
+				self.turtle.write(a, move=False, align='center', font=('Arial',12,'bold'))
 		
 		turtle.update()
 		
 		if self.debug_mode:
 			# Stop updates again
 			turtle.tracer(0,0)
-				
-			
-			
+
+
+class generic_box(graphic):
+	"""
+	Graphics subclass for drawing generic blocks for devices which don't draw their own.
+	
+	name: label to draw at centre
+	n_in: number of input ports (on left side)
+	n_out: number of output ports (on right side)
+	"""
+	
+	box_width = 50
+	box_height = 100
+	port_length = 10
+	box_linewidth = 2
+	
+	
+	def __init__(self, name="", n_in=2, n_out=2, origin=(0,0), angle=0, debug_mode=False):
+	
+		graphic.__init__(self, path=[], origin=origin, angle=angle, debug_mode=debug_mode)
+		
+		self.name = name
+		self.n_in = n_in
+		self.n_out = n_out
+		
+		self.graphical_attributes.extend(["name", "n_in", "n_out"])
+		
+		self.update_path()
+	
+	
+	def update_path(self):
+		"""
+		Update the graphics path with latest parameters (name, n_in, n_out...)
+		"""
+		
+		w = generic_box.box_width
+		h = generic_box.box_height
+		l = generic_box.port_length
+	
+		p = []
+	
+		p.extend(['wi',generic_box.box_linewidth])
+	
+		# Draw box
+		p.extend(['pu',None])
+		p.extend(['ox',w/2])
+		p.extend(['oy',h/2])
+		p.extend(['pd',None])
+	
+		p.extend(['oy',-h/2])
+		p.extend(['ox',-w/2])
+		p.extend(['oy',+h/2])
+		p.extend(['ox',+w/2])
+	
+		# Draw ports
+		p.extend(['pu',None])
+		p.extend(['wi',1])
+	
+		# Output ports (right side)
+		p.extend(['ox',+w/2])
+		p.extend(['oa',0])
+	
+		for n in range(self.n_out):
+			p.extend(['oy',-h/2 + (n+1/2)*h/self.n_out])
+			p.extend(['pd',None])
+			p.extend(['fd',l])
+			p.extend(['pu',None])
+			p.extend(['bk',l])
+	
+		# Input ports (left side)
+		p.extend(['ox',-w/2])
+		p.extend(['oa',180])
+	
+		for n in range(self.n_in):
+			p.extend(['oy',-h/2 + (n+1/2)*h/self.n_in])
+			p.extend(['pd',None])
+			p.extend(['fd',l])
+			p.extend(['pu',None])
+			p.extend(['bk',l])
+	
+	
+		p.extend(['pu',None])
+		p.extend(['ox',0])
+		p.extend(['oy',-6])
+		p.extend(['tx',self.name])
+		
+		self.path = p
+
 
 class base_optic:
 	"""
@@ -403,12 +515,12 @@ class base_optic:
 			pass
 	
 	
-
-
 class complex_optic(base_optic):
 	"""
 	Optical component combining several other optical components.
 	"""
+
+
 
 if __name__ == "__main__":
 	
@@ -451,69 +563,18 @@ if __name__ == "__main__":
 # 	i = switch()
 # 	bs = beamsplitter()
 	
-	w = 50
-	h = 100
-	l = 10
-	ni = 3
-	no = 5
 	
-	p = []
+	g1 = generic_box(name="G1")
+	g2 = generic_box(name="G2", origin=(150,100), angle=15)
 	
-	p.extend(['wi',2])
+	from time import sleep
+	sleep(1.0)
 	
-	# Draw box
-	p.extend(['pu',None])
-	p.extend(['ox',w/2])
-	p.extend(['oy',h/2])
-	p.extend(['pd',None])
-	
-	p.extend(['oy',-h/2])
-	p.extend(['ox',-w/2])
-	p.extend(['oy',+h/2])
-	p.extend(['ox',+w/2])
-	
-	# Draw ports
-	p.extend(['pu',None])
-	p.extend(['wi',1])
-	
-	# Output ports (right side)
-	p.extend(['ox',+w/2])
-	p.extend(['oa',0])
-	
-	for n in range(no):
-		p.extend(['oy',-h/2 + (n+1/2)*h/no])
-		p.extend(['pd',None])
-		p.extend(['fd',l])
-		p.extend(['pu',None])
-		p.extend(['bk',l])
-	
-	# Input ports (left side)
-	p.extend(['ox',-w/2])
-	p.extend(['oa',180])
-	
-	for n in range(ni):
-		p.extend(['oy',-h/2 + (n+1/2)*h/ni])
-		p.extend(['pd',None])
-		p.extend(['fd',l])
-		p.extend(['pu',None])
-		p.extend(['bk',l])
-	
-	
-	p.extend(['pu',None])
-	p.extend(['ox',0])
-	p.extend(['oy',-6])
-	p.extend(['tx',"Yo1"])
-	
-	
-	
-	g1 = graphic(path = p, origin = (150,100), angle = 15)
-	g2 = graphic(path = p, origin = (0,0), angle = 0)
-	
-	g1.debug_mode = False
+# 	g1.debug_mode = False
 	g2.debug_mode = False
 	
-	g1.draw()
-	g2.draw()
+	g2.n_in = 4
+	g2.n_out = 5
 	
 	
 	
