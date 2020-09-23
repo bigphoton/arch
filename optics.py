@@ -28,6 +28,7 @@ complex_optic
 
 import numpy as np
 import turtle
+from turtle import Vec2D as v2
 
 
 MODELS = ["incoherent", 
@@ -63,7 +64,7 @@ class port:
 		self.max_connections = max_connections
 		self.owner = owner
 		
-		self.graphic = generic_port(name=name,is_input=is_input)
+		self.graphic = generic_port(name=name, is_input=is_input, position=position, angle=angle)
 	
 	def connect_to(self, other_port):
 		
@@ -213,12 +214,12 @@ class graphic:
 	
 	debug_speed = 1
 	
-	def __init__(self, path = [], position = (0,0), angle = 0, debug = False):
+	def __init__(self, path = [], position = v2(0,0), angle = 0, debug = False):
 		
 		# Attributes which cause a redraw
 		self.graphical_attributes = []
 		
-		self.position = position
+		self.position = v2(*position)
 		self.angle = angle
 		
 		self.debug = debug
@@ -320,7 +321,7 @@ class graphic:
 				#  They use the most straightforward algorithm, but it's not efficient. 
 				#   -JWS 22/09/20
 				angle = np.radians(self.angle)
-				x0,y0 = self.turtle.pos() - self.position
+				x0,y0 = self.turtle.pos() - v2(*self.position)
 				r0 = np.sqrt(x0**2 + y0**2)
 				angle0 = np.arctan2(y0,x0)
 				x1,y1 = r0*np.cos(angle0 - angle), r0*np.sin(angle0 - angle)
@@ -332,7 +333,7 @@ class graphic:
 				
 			elif c == "oy":
 				angle = np.radians(self.angle)
-				x0,y0 = self.turtle.pos() - self.position
+				x0,y0 = self.turtle.pos() - v2(*self.position)
 				r0 = np.sqrt(x0**2 + y0**2)
 				angle0 = np.arctan2(y0,x0)
 				x1,y1 = r0*np.cos(angle0 - angle), r0*np.sin(angle0 - angle)
@@ -368,8 +369,8 @@ class generic_box(graphic):
 	n_out: number of output ports (on right side)
 	"""
 	
-	box_width = 50
-	box_height = 100
+	box_width = 60
+	box_height = 120
 	port_length = 10
 	box_linewidth = 2
 	
@@ -455,16 +456,19 @@ class generic_port(graphic):
 			p.extend(['arb','stamp'])
 			p.extend(['rt',180])
 			p.extend(['fd',generic_port.port_length])
+			p.extend(['pu',None])
+			p.extend(['rt',90])
+			p.extend(['fd',3])
+
 		else:
 			p.extend(['rt',180])
 			p.extend(['fd',generic_port.port_length])
 			p.extend(['arb','stamp'])
+			p.extend(['pu',None])
+			p.extend(['lt',90])
+			p.extend(['fd',3])
 		
-		p.extend(['pu',None])
-		p.extend(['rt',90])
-		p.extend(['fd',3])
 		p.extend(['tx',self.name])
-		
 		
 		self.path = p
 	
@@ -519,6 +523,9 @@ class base_optic:
 		
 		self.reference_designator = self.reference_prefix + str(self.reference_index)
 		
+		# TODO: set position intelligently
+		self.__position = v2(100,0)
+		
 		# Run subclass define routine
 		self.define()
 		
@@ -526,10 +533,25 @@ class base_optic:
 		
 		# Set default graphic if none present
 		if not hasattr(self, "graphic"):
-			self.graphic = generic_box(self.reference_designator)
-		
+			self.graphic = generic_box(self.reference_designator, position=self.position, angle=0)
 		
 	
+	@property
+	def position(self):
+		return self.__position
+	
+	
+	@position.setter
+	def position(self, new_position):
+		new_position = v2(*new_position)
+		# Update our graphic's position
+		self.graphic.position = new_position
+		# Update our ports' positions
+		for port in self.ports:
+			port.graphic.position -= self.__position
+			port.graphic.position += new_position
+		# Update our position
+		self.__position = new_position
 	
 	@property
 	def in_ports(self):
@@ -601,9 +623,6 @@ if __name__ == "__main__":
 		
 		def define(self):
 			
-			# FIXME: this is a placeholder; needs to be implemented by the class -JWS 23/09/2020
-			self.position = (0,0)
-			
 			p = set()
 			w = generic_box.box_width
 			h = generic_box.box_height
@@ -611,15 +630,11 @@ if __name__ == "__main__":
 			
 			n_in = 2
 			for n in range(n_in):
-				print ("IN"+str(n))
-				print ((-w/2+x0,-h/2+(n+1/2)*h/n_in+y0))
 				p.add(port("IN"+str(n), "optical", True,  self, 1, (-w/2+x0,-h/2+(n+1/2)*h/n_in+y0), 0))
 			
 			n_out = 2
 			for n in range(n_out):
-				print ("OUT"+str(n))
-				print ((+w/2+x0,-h/2+(n+1/2)*h/n_out+y0))
-				p.add(port("OUT"+str(n), "optical", False, self, 1, (+w/2+x0,-h/2+(n+1/2)*h/n_out+y0), 0))
+				p.add(port("OUT"+str(n), "optical", False, self, 1, (+w/2+x0,-h/2+(n+1/2)*h/n_out+y0), 180))
 			
 			self.ports = p
 			
@@ -638,9 +653,11 @@ if __name__ == "__main__":
 # 	i = switch()
 	bs = beamsplitter()
 	
-# 	g = generic_box("H100", 2, 2)
-# 	p0 = generic_port("IN0", True, position=(0,0), debug = False)
-# 	p1 = generic_port("IN1", True, position=(0,50), debug = False)
-# 	p2 = generic_port("OUT0", False, position=(0,100), debug = False)
+	from time import sleep
+	sleep(1.0)
+	bs.position = (-100,0)
+	
+# 	g0 = generic_box("H100", position=(100,100) )
+# 	g1 = generic_box("H101", position=(-50,-50), angle=15)
 	
 	turtle.exitonclick()
