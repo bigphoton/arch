@@ -181,6 +181,15 @@ class graphic:
 	origin: origin of drawing commands
 	angle: angle of drawing commands
 	
+	graphical_attributes: attributes watched for updates to trigger redrawing
+	
+	Subclasses should implement:
+	 * update_path()
+	 
+	Subclasses can optionally implement:
+	 * __init__() to modify input parameters
+	 * graphical_attributes, extending
+	
 	Path commands
 	-------------
 	
@@ -195,11 +204,12 @@ class graphic:
 	oa: go to angle (angle)
 	wi: set width (width)
 	tx: write text (text)
+	arb: execute arbitrary argument-less method (text)
 	"""
 	
 	debug_speed = 1
 	
-	def __init__(self, path = [], origin = (0,0), angle = 0, debug_mode = False):
+	def __init__(self, path = [], origin = (0,0), angle = 0, debug = False):
 		
 		# Attributes which cause a redraw
 		self.graphical_attributes = []
@@ -207,7 +217,7 @@ class graphic:
 		self.origin = origin
 		self.angle = angle
 		
-		self.debug_mode = debug_mode
+		self.debug = debug
 		
 		# Set up turtle
 		# Stop turtle animations
@@ -219,7 +229,7 @@ class graphic:
 		self.path = path
 		
 		# Start watching attributes
-		self.graphical_attributes.extend(["origin", "angle", "path", "debug_mode"])
+		self.graphical_attributes.extend(["origin", "angle", "path", "debug"])
 		
 		# Draw self
 		self.draw()
@@ -273,7 +283,7 @@ class graphic:
 		self.turtle.lt(self.angle)
 		self.turtle.pd()
 		
-		if self.debug_mode:
+		if self.debug:
 			turtle.tracer(1,0)
 			self.turtle.speed(graphic.debug_speed)
 			self.turtle.dot(10,'blue')
@@ -333,10 +343,14 @@ class graphic:
 				self.turtle.width(a)
 			elif c == "tx":
 				self.turtle.write(a, move=False, align='center', font=('Arial',12,'bold'))
+			elif c == "arb":
+				getattr(self.turtle, a)()
+			else:
+				raise RuntimeError("Unrecognised path command '{:}'".format(c))
 		
 		turtle.update()
 		
-		if self.debug_mode:
+		if self.debug:
 			# Stop updates again
 			turtle.tracer(0,0)
 
@@ -356,9 +370,9 @@ class generic_box(graphic):
 	box_linewidth = 2
 	
 	
-	def __init__(self, name="", n_in=2, n_out=2, origin=(0,0), angle=0, debug_mode=False):
+	def __init__(self, name="", n_in=2, n_out=2, **kwargs):
 	
-		graphic.__init__(self, path=[], origin=origin, angle=angle, debug_mode=debug_mode)
+		graphic.__init__(self, **kwargs)
 		
 		self.name = name
 		self.n_in = n_in
@@ -428,6 +442,60 @@ class generic_box(graphic):
 		self.path = p
 
 
+class generic_port(graphic):
+	"""
+	Graphic for drawing input/output ports.
+	
+	name: str, label string
+	in_port: bool, port direction
+	"""
+	
+	port_length = 20
+	
+	def __init__(self, name="", is_input=True, **kwargs):
+	
+		graphic.__init__(self, **kwargs)
+		
+		self.name = name
+		self.is_input = is_input
+		
+		self.graphical_attributes.extend(["name", "is_input", "port_length"])
+		
+		self.update_path()
+	
+	
+	def update_path(self):
+		
+		w = generic_box.box_width
+		h = generic_box.box_height
+		l = generic_box.port_length
+	
+		p = []
+	
+		p.extend(['wi',generic_box.box_linewidth])
+		p.extend(['pd',None])
+		
+		if self.is_input:
+			p.extend(['arb','stamp'])
+			p.extend(['rt',180])
+			p.extend(['fd',generic_port.port_length])
+		else:
+			p.extend(['rt',180])
+			p.extend(['fd',generic_port.port_length])
+			p.extend(['arb','stamp'])
+		
+		p.extend(['pu',None])
+		p.extend(['rt',90])
+		p.extend(['fd',3])
+		p.extend(['tx',self.name])
+		
+		
+		print (p)
+		self.path = p
+	
+	
+
+
 class base_optic:
 	"""
 	Base class for optical components.
@@ -437,7 +505,7 @@ class base_optic:
 	Subclasses should implement:
 	----------------------------
 	
-	 * reference_prefix: str
+	 * reference_prefix: str, class property
 	 * model_parameters: dict
 	 * model_matrix: list(list)
 	 * supported_models: list
@@ -457,62 +525,70 @@ class base_optic:
 	# Dictionary of reference designators for all optics
 	reference_designators = dict()
 	
+	# To be overridden by subclasses:
+	reference_prefix = "_"
+	
 	def __init__(self):
 		
-		# Number of spatial modes
-		self.n_spatial_modes = []
-		
+		# Run subclass define routine
+		self.define()
 		
 		# Handle reference designator generation
 		try:
 			existing_indices = base_optic.reference_designators[self.reference_prefix]
-			
 			self.reference_index = max(existing_indices) + 1
 			
 		except KeyError:
-		
 			self.reference_index = 0
-			
 			base_optic.reference_designators.update( {self.reference_prefix:set()} )
 		
 		base_optic.reference_designators[ self.reference_prefix ].add( self.reference_index )
 		
 		self.reference_designator = self.reference_prefix + str(self.reference_index)
 		
-		print ("Hello, my reference designator is " + self.reference_designator)
+		# Handle graphic
 		
-		# Set up ports
-		self.ports = set()
+		# Set default graphic if none present
+		if not hasattr(self, "graphic"):
+			self.graphic = generic_box(self.reference_designator, len(self.in_ports), len(self.out_ports) )
 		
 		
 	
-	@classmethod
-	def connect(cls, comp0, comp1, connection_dict):
+	
+	@property
+	def in_ports(self):
 		"""
-		Generate and return a new base_optic which connects and merges
-		the components.
+		Convenience access to a filtered dict of input ports only
 		"""
-		# TODO
-		merged_comp = comp0
-		return merged_comp
+		return {p for p in self.ports if p.is_input}
+	
+	
+	@property
+	def out_ports(self):
+		"""
+		Convenience access to a filtered list of output ports only
+		"""
+		return {p for p in self.ports if p.is_output}
 		
+	
+	def define(self):
+		"""
+		Method to be overridden by subclasses.
+		
+		Must populate:
+		 - self.reference_prefix
+		 - self.ports
+		
+		Optionally populate:
+		 - self.graphic
+		"""
+		pass
+	
 	
 	def compute(self, input):
 		"""
 		Method to propagate input state to output of component.
 		"""
-		
-		if input.model == "incoherent":
-			pass
-		
-		if input.model == "coherent":
-			pass
-		
-		if input.model == "fock_simple":
-			pass
-		
-		if input.model == "fock_advanced":
-			pass
 	
 	
 class complex_optic(base_optic):
@@ -544,12 +620,11 @@ if __name__ == "__main__":
 	
 	
 	class beamsplitter(base_optic):
-		def __init__(self):
-			self.reference_prefix = "B"
-			self.supported_models = ["coherent"]
-			self.n_spatial_modes = 2
-			
-			super(type(self), self).__init__()
+		
+		reference_prefix = "B"
+		
+		def define(self):
+			pass
 		
 		def model_matrix(self, reflectivity = 0.5):
 			th = np.arctan(reflectivity)
@@ -563,19 +638,9 @@ if __name__ == "__main__":
 # 	i = switch()
 # 	bs = beamsplitter()
 	
-	
-	g1 = generic_box(name="G1")
-	g2 = generic_box(name="G2", origin=(150,100), angle=15)
-	
-	from time import sleep
-	sleep(1.0)
-	
-# 	g1.debug_mode = False
-	g2.debug_mode = False
-	
-	g2.n_in = 4
-	g2.n_out = 5
-	
-	
+# 	g = generic_box("H100", 2, 2)
+	p0 = generic_port("IN0", True, origin=(0,0), debug = False)
+	p1 = generic_port("IN1", True, origin=(0,50), debug = False)
+	p2 = generic_port("OUT0", False, origin=(0,100), debug = False)
 	
 	turtle.exitonclick()
