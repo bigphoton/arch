@@ -92,7 +92,6 @@ class port:
 		
 		# Connect graphically
 		if self.is_input:
-			print ("Drawing connection")
 			self.graphic.connected_port = other_port
 			self.graphic.update_path()
 	
@@ -127,6 +126,12 @@ class port:
 				+ (" input" if self.is_input else "")
 				+ (" output" if self.is_output else "")
 				+ (" connected to {:}".format(self.connected_ports) if self.connected_ports != set() else "") )
+	
+	def __repr__(self):
+		if self.is_output:
+			return "port('{:}',value={:.3f}\u2220{:.1f}\u00B0)".format(self.name, abs(self.value), np.degrees(np.angle(self.value)))
+		else:
+			return "port('{:}',type={:})".format(self.name, self.type)
 
 class input_port(port):
 	"""
@@ -156,50 +161,6 @@ class port_set(set):
 	def __getitem__(self, key):
 		val = {e for e in self if e.name == key}.pop()
 		return val
-
-
-class optical_state:
-	"""
-	Class of all types of optical states across all models.
-	"""
-	
-	def __init__(self,
-					model = "incoherent", 
-					n_spatial_modes = 1, 
-					amplitudes = [1], 
-					n_submodes = 1):
-		
-		# Type of model which this state applies to
-		self.model = model
-		
-		# Check
-		if self.model not in MODELS:
-			raise AttributeError("Model type {:} is not one of the possible options: {:}".format(self.model, MODELS))
-		
-		# Number of spatial modes covered by state
-		self.n_spatial_modes = n_spatial_modes
-		
-		# Check
-		if type(self.n_spatial_modes) is not int:
-			raise AttributeError("Number of spatial modes {:} must be an integer.".format(self.n_spatial_modes))
-		if self.n_spatial_modes < 1:
-			raise AttributeError("Number of spatial modes {:} must be greater than zero.".format(self.n_spatial_modes))
-		
-		# Number of other modes per spatial mode
-		self.n_submodes = n_submodes
-		
-		# Check
-		if type(self.n_submodes) is not int:
-			raise AttributeError("Number of sub-modes per mode {:} must be an integer.".format(self.n_submodes))
-		if self.n_submodes < 1:
-			raise AttributeError("Number of sub-modes per mode {:} must be greater than zero.".format(self.n_submodes))
-		
-		# Amplitude of state in each mode
-		self.amplitudes = amplitudes
-		
-		# Check
-		if len(self.amplitudes) != self.n_spatial_modes * self.n_submodes:
-			raise AttributeError("Number of amplitudes {:} must match total number of modes {:}.".format(len(self.amplitudes), self.n_spatial_modes * self.n_submodes))
 
 
 class graphic:
@@ -586,7 +547,7 @@ class base_optic:
 	# To be overridden by subclasses:
 	reference_prefix = "_"
 	
-	def __init__(self):
+	def __init__(self, **kwargs):
 		
 		# Handle reference designator generation
 		try:
@@ -608,7 +569,8 @@ class base_optic:
 		self.__position = v2(0,0)
 		
 		# Run subclass define routine
-		self.define()
+		#  Pass kwargs to define to initialise variables as required
+		self.define(**kwargs)
 		
 		# Handle graphics
 		
@@ -662,7 +624,7 @@ class base_optic:
 		return {p for p in self.ports if p.is_output}
 	
 	
-	def define(self):
+	def define(self, **kwargs):
 		"""
 		Method to be overridden by subclasses.
 		
@@ -676,10 +638,13 @@ class base_optic:
 		pass
 	
 	
-	def compute(self, input):
+	def compute(self):
 		"""
-		Method to propagate input state to output of component.
+		Method to propagate input state to output of component. Overridden by subclasses.
+		
+		Must take values from input ports, place values on output ports.
 		"""
+		pass
 	
 	
 class complex_optic(base_optic):
@@ -712,11 +677,14 @@ if __name__ == "__main__":
 	
 	class beamsplitter(base_optic):
 		
-		reference_prefix = "B"
+		reference_prefix = "BS"
 		
-		def define(self):
+		def define(self, reflectivity=0.5):
 			
-			p = set()
+			# Internal variable(s)
+			self.reflectivity = reflectivity
+			
+			# Setup ports
 			w = generic_box.box_width
 			h = generic_box.box_height
 			l = generic_port.port_length
@@ -725,50 +693,88 @@ if __name__ == "__main__":
 			# Add two input ports
 			n_in = 2
 			for n in range(n_in):
-				p.add(port("IN"+str(n), "optical", True,  self, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
+				self.ports.add(port("IN"+str(n), "optical", True,  self, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
 			
 			# ...and two outputs
 			n_out = 2
 			for n in range(n_out):
-				p.add(port("OUT"+str(n), "optical", False, self, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
+				self.ports.add(port("OUT"+str(n), "optical", False, self, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
 			
-			self.ports = p
-			
-			# Use a generic box for now
+			# Setup graphic
 			self.graphic = generic_box(self.reference_designator, position=self.position)
 			
 		
-		def model_matrix(self, reflectivity = 0.5):
-			th = np.arctan(reflectivity)
-			m = np.array([ [np.cos(th), 1j * np.sin(th)], 
-						   [1j * np.sin(th), np.cos(th)] ])
-			return m
+		def compute(self):
+			# Model matrix
+			r = np.sqrt(self.reflectivity)
+			t = np.sqrt(1-r**2) * 1j
+			m = np.array([ [r, t], 
+						   [t, r] ])
+			
+			# Input vector
+			vin = np.array([[self.ports['IN0'].value],
+							[self.ports['IN1'].value]])
+			
+			# Output vector
+			vout = m @ vin
+			
+			# Set output port values
+			self.ports['OUT0'].value = vout.flat[0]
+			self.ports['OUT1'].value = vout.flat[1]
+			
+			
+	class phase_shift(base_optic):
+		
+		reference_prefix = "P"
+		
+		def define(self, phase=0):
+			
+			# Internal variable(s)
+			self.phase = phase
+			
+			# Setup ports
+			w = generic_box.box_width
+			l = generic_port.port_length
+			x0,y0 = self.position
+			
+			# Add ports
+			self.ports.add(port("IN", "optical", True,  self, 1, (-w/2+x0-l,y0), 0))
+			self.ports.add(port("OUT", "optical", False, self, 1, (+w/2+x0+l,y0), 180))
+			
+			# Setup graphic
+			self.graphic = generic_box(self.reference_designator, position=self.position)
+			
+		
+		def compute(self):
+			
+			self.ports['OUT'].value = np.exp(1j*self.phase) * self.ports['IN'].value
 	
-# 	s = switch()
-# 	w = switch()
-# 	bsa = beamsplitter()
-# 	i = switch()
-	
-	
-	bs0 = beamsplitter()
-	bs0.position = (-200,-20)
-	bs1 = beamsplitter()
-	bs1.position = (+200,+20)
-	
-	bs0.ports['OUT0'].connect(bs1.ports['IN0'])
-	bs0.ports['OUT1'].connect(bs1.ports['IN1'])
-	
-	print ("OUT0 connected ports: {:}".format(bs0.ports['OUT0'].connected_ports))
-	print ("IN0 connected ports: {:}".format(bs1.ports['IN0'].connected_ports))
 	
 	from time import sleep
 	
-	sleep(1.0)
+	bs0 = beamsplitter(reflectivity=0.5)
+	bs0.position = (-200,+20)
 	
-	bs0.position = (-100, 20)
+	ps = phase_shift(phase=0)
+	ps.position = (0,-40)
 	
-	sleep(1.0)
+	bs1 = beamsplitter()
+	bs1.position = (+200,+20)
 	
-	bs1.position = ( 100,-20)
+	bs0.ports['OUT0'].connect(ps.ports['IN'])
+	ps.ports['OUT'].connect(bs1.ports['IN0'])
+	bs0.ports['OUT1'].connect(bs1.ports['IN1'])
 	
-	turtle.exitonclick()
+	
+	bs0.ports['IN0'].value = 1.0
+	bs0.ports['IN1'].value = 0.0
+	
+	sleep(0.5)
+	
+	
+	for phase in np.linspace(0,np.pi,10):
+		ps.phase = phase
+		bs0.compute()
+		ps.compute()
+		bs1.compute()
+		print("phase={:.3f}, output={:}".format(phase,bs1.out_ports))
