@@ -66,7 +66,11 @@ class port:
 		
 		self.graphic = generic_port(name=name, is_input=is_input, position=position, angle=angle)
 	
-	def connect_to(self, other_port):
+	def connect(self, other_port):
+		
+		# Only run if we're not already connected
+		if other_port in self.connected_ports:
+			return
 		
 		# Do checks
 		if len(self.connected_ports) >= self.max_connections:
@@ -76,11 +80,21 @@ class port:
 		if self.type != other_port.type:
 			raise RuntimeError("Port being connected of type '{:}' does not match this port (type '{:}').".format(other_port.type, self.type))
 		
-		if self.is_input and not other_port.is_output or self.is_output and other_port.is_input:
+		if self.is_input == other_port.is_input:
 			raise RuntimeError("Port directions do not match.")
 		
 		# Connect
+		# TODO: Disconnect connected ports as required to stay within self.max_connections -JWS 24/09/2020
 		self.connected_ports.add(other_port)
+		
+		# Tell other port we're married
+		other_port.connect(self)
+		
+		# Connect graphically
+		if self.is_input:
+			print ("Drawing connection")
+			self.graphic.connected_port = other_port
+			self.graphic.update_path()
 	
 	
 	@property
@@ -112,8 +126,7 @@ class port:
 				+ (" '"+self.name+"'" if self.name != "" else "")
 				+ (" input" if self.is_input else "")
 				+ (" output" if self.is_output else "")
-				+ (" connected to {:}".format(self.connected_port) if self.connected_port is not None else "") )
-
+				+ (" connected to {:}".format(self.connected_ports) if self.connected_ports != set() else "") )
 
 class input_port(port):
 	"""
@@ -132,6 +145,17 @@ class output_port(port):
 	def __init__(self, *args, **kwargs):
 		port.__init__(self,args,kwargs)
 		self.is_input = True
+
+class port_set(set):
+	"""
+	Subscriptable container class for ports.
+	
+	Build like a set, access elements like a set or like a dict.
+	"""
+	
+	def __getitem__(self, key):
+		val = {e for e in self if e.name == key}.pop()
+		return val
 
 
 class optical_state:
@@ -204,15 +228,16 @@ class graphic:
 	lt: left turn in degrees (angle)
 	fd: forward move (distance)
 	bk: backward move (distance)
-	ox: go to x (x coordinate)
-	oy: go to y (x coordinate)
+	go: go to position (x,y tuple)
 	oa: go to angle (angle)
+	cl: set line colour (text or 3-tuple)
 	wi: set width (width)
 	tx: write text (text)
 	arb: execute arbitrary argument-less method (text)
 	"""
 	
 	debug_speed = 1
+	is_synchronous = True
 	
 	def __init__(self, path = [], position = v2(0,0), angle = 0, debug = False):
 		
@@ -226,9 +251,10 @@ class graphic:
 		
 		# Set up turtle
 		# Stop turtle animations
-		turtle.tracer(0,0)
+		graphic.run_animations(False)
 		# Instantiate new turtle for our use
 		self.turtle = turtle.Turtle()
+		turtle.delay(100)
 		
 		# Set path
 		self.path = path
@@ -238,6 +264,38 @@ class graphic:
 		
 		# Draw self
 		self.draw()
+	
+	
+	@classmethod
+	def run_animations(cls, is_running):
+		"""
+		Method to turn graphic updates on and off globally.
+		
+		is_running: bool
+		"""
+		if is_running:
+			turtle.tracer(1,0)
+		else:
+			turtle.tracer(0,0)
+	
+	
+	@classmethod
+	def force_update(cls):
+		"""
+		Method to force a global graphics update (without animating).
+		"""
+		turtle.update()
+	
+	
+	@classmethod
+	def update(cls):
+		"""
+		Method to perform a global graphics update (without animating).
+		If graphic.is_synchronous is false, this will not cause an update.
+		"""
+		if cls.is_synchronous:
+			cls.force_update()
+	
 	
 	def __setattr__(self, name, value):
 		# Store the original version of this attribute
@@ -289,7 +347,7 @@ class graphic:
 		self.turtle.pd()
 		
 		if self.debug:
-			turtle.tracer(1,0)
+			graphic.run_animations(True)
 			self.turtle.speed(graphic.debug_speed)
 			self.turtle.dot(10,'blue')
 		else:
@@ -316,36 +374,14 @@ class graphic:
 				self.turtle.fd(a)
 			elif c == "bk":
 				self.turtle.bk(a)
-			elif c == "ox":
-				# FIXME: Simplify `ox` and `oy` commands.
-				#  They use the most straightforward algorithm, but it's not efficient. 
-				#   -JWS 22/09/20
-				angle = np.radians(self.angle)
-				x0,y0 = self.turtle.pos() - v2(*self.position)
-				r0 = np.sqrt(x0**2 + y0**2)
-				angle0 = np.arctan2(y0,x0)
-				x1,y1 = r0*np.cos(angle0 - angle), r0*np.sin(angle0 - angle)
-				x2,y2 = a, y1
-				r2 = np.sqrt(x2**2 + y2**2)
-				angle2 = np.arctan2(y2,x2)
-				x3,y3 = r2*np.cos(angle2 + angle), r2*np.sin(angle2 + angle)
-				self.turtle.setpos( x3 + self.position[0], y3 + self.position[1] )
-				
-			elif c == "oy":
-				angle = np.radians(self.angle)
-				x0,y0 = self.turtle.pos() - v2(*self.position)
-				r0 = np.sqrt(x0**2 + y0**2)
-				angle0 = np.arctan2(y0,x0)
-				x1,y1 = r0*np.cos(angle0 - angle), r0*np.sin(angle0 - angle)
-				x2,y2 = x1, a
-				r2 = np.sqrt(x2**2 + y2**2)
-				angle2 = np.arctan2(y2,x2)
-				x3,y3 = r2*np.cos(angle2 + angle), r2*np.sin(angle2 + angle)
-				self.turtle.setpos( x3 + self.position[0], y3 + self.position[1] )
+			elif c == "go":
+				self.turtle.setpos(self.transform_to_global(a))
 			elif c == "oa":
 				self.turtle.seth(self.angle + a)
 			elif c == "wi":
 				self.turtle.width(a)
+			elif c == "cl":
+				self.turtle.color(a)
 			elif c == "tx":
 				self.turtle.write(a, move=False, align='center', font=('Arial',12,'bold'))
 			elif c == "arb":
@@ -353,11 +389,44 @@ class graphic:
 			else:
 				raise RuntimeError("Unrecognised path command '{:}'".format(c))
 		
-		turtle.update()
+		graphic.update()
 		
 		if self.debug:
 			# Stop updates again
-			turtle.tracer(0,0)
+			graphic.run_animations(False)
+	
+	
+	def transform_to_global(self, local_position):
+		p_l = v2(*local_position)
+		
+		# Origin
+		p_o = v2(*self.position)
+		angle_o = -self.angle #deg
+		
+		# Projectors
+		p_xo = v2(1,0).rotate(angle_o)
+		p_yo = v2(0,1).rotate(angle_o)
+		
+		# Global
+		p_g = v2(p_l*p_xo, p_l*p_yo) + p_o
+		
+		return p_g
+	
+	def transform_to_local(self, global_position):
+		p_g = v2(*global_position)
+		
+		# Origin
+		p_o = v2(*self.position)
+		angle_o = self.angle #deg
+		
+		# Projectors
+		p_xo = v2(1,0).rotate(angle_o)
+		p_yo = v2(0,1).rotate(angle_o)
+		
+		# Local
+		p_l = v2((p_g - p_o)*p_xo, (p_g - p_o)*p_yo)
+		
+		return p_l
 
 
 class generic_box(graphic):
@@ -371,7 +440,6 @@ class generic_box(graphic):
 	
 	box_width = 60
 	box_height = 120
-	port_length = 10
 	box_linewidth = 2
 	
 	
@@ -393,7 +461,6 @@ class generic_box(graphic):
 		
 		w = generic_box.box_width
 		h = generic_box.box_height
-		l = generic_box.port_length
 	
 		p = []
 	
@@ -401,19 +468,17 @@ class generic_box(graphic):
 	
 		# Draw box
 		p.extend(['pu',None])
-		p.extend(['ox',w/2])
-		p.extend(['oy',h/2])
+		p.extend(['go',(+w/2,+h/2)])
 		p.extend(['pd',None])
 	
-		p.extend(['oy',-h/2])
-		p.extend(['ox',-w/2])
-		p.extend(['oy',+h/2])
-		p.extend(['ox',+w/2])
+		p.extend(['go',(+w/2,-h/2)])
+		p.extend(['go',(-w/2,-h/2)])
+		p.extend(['go',(-w/2,+h/2)])
+		p.extend(['go',(+w/2,+h/2)])
 		
 		# Draw name text
 		p.extend(['pu',None])
-		p.extend(['ox',0])
-		p.extend(['oy',-6])
+		p.extend(['go',(0,-6)])
 		p.extend(['tx',self.name])
 		
 		self.path = p
@@ -436,39 +501,51 @@ class generic_port(graphic):
 		self.name = name
 		self.is_input = is_input
 		
+		self.connected_port = None
+		
 		self.graphical_attributes.extend(["name", "is_input", "port_length"])
 		
 		self.update_path()
 	
 	
 	def update_path(self):
-		
-		w = generic_box.box_width
-		h = generic_box.box_height
-		l = generic_box.port_length
 	
 		p = []
 	
+		p.extend(['pu',None])
 		p.extend(['wi',generic_box.box_linewidth])
+		
+		p.extend(['lt',self.angle+90])
+		p.extend(['fd',5])
+		p.extend(['tx',self.name])
+		p.extend(['bk',5])
+		p.extend(['oa',0])
 		p.extend(['pd',None])
 		
+		
 		if self.is_input:
+			p.extend(['go',(generic_port.port_length,0)])
 			p.extend(['arb','stamp'])
-			p.extend(['rt',180])
-			p.extend(['fd',generic_port.port_length])
 			p.extend(['pu',None])
-			p.extend(['rt',90])
-			p.extend(['fd',3])
 
 		else:
 			p.extend(['rt',180])
-			p.extend(['fd',generic_port.port_length])
 			p.extend(['arb','stamp'])
+			p.extend(['go',(generic_port.port_length,0)])
 			p.extend(['pu',None])
-			p.extend(['lt',90])
-			p.extend(['fd',3])
-		
-		p.extend(['tx',self.name])
+			
+		if self.is_input:
+			try:
+				u = self.transform_to_local(self.position)
+				v = self.transform_to_local(self.connected_port.graphic.position)
+				p.extend(['wi',1])
+				p.extend(['cl','blue'])
+				p.extend(['pu',None])
+				p.extend(['go',u])
+				p.extend(['pd',None])
+				p.extend(['go',v])
+			except:
+				pass
 		
 		self.path = p
 	
@@ -485,21 +562,22 @@ class base_optic:
 	----------------------------
 	 * reference_prefix: str, class property
 	 * graphic: graphic
-	 * ports: set
+	 * ports: port_set
 	 * model_parameters: dict
 	 * model_matrix: list(list)
 	 * supported_models: list
 	 
-	Data
-	====
+	Instance data
+	=============
 	
+	
+	Class data
+	==========
 	reference_designators: dict(set). Keys are reference_prefix's, sets are indices
 	
 	Wishlist
 	========
-	 * Draws itself
 	 * Calculates its own compact model
-	 * Function to combine two components
 	"""
 	
 	# Dictionary of reference designators for all optics
@@ -523,13 +601,16 @@ class base_optic:
 		
 		self.reference_designator = self.reference_prefix + str(self.reference_index)
 		
-		# TODO: set position intelligently
-		self.__position = v2(100,0)
+		# Placeholder ports set
+		self.__ports = port_set()
+		
+		# TODO: set position intelligently, or hide graphic before its position is set
+		self.__position = v2(0,0)
 		
 		# Run subclass define routine
 		self.define()
 		
-		# Handle graphic
+		# Handle graphics
 		
 		# Set default graphic if none present
 		if not hasattr(self, "graphic"):
@@ -550,8 +631,20 @@ class base_optic:
 		for port in self.ports:
 			port.graphic.position -= self.__position
 			port.graphic.position += new_position
+			for con_port in port.connected_ports:
+				con_port.graphic.update_path()
 		# Update our position
 		self.__position = new_position
+	
+	
+	@property
+	def ports(self):
+		return self.__ports
+	
+	@ports.setter
+	def ports(self, new_ports):
+		self.__ports = port_set(new_ports)
+		
 	
 	@property
 	def in_ports(self):
@@ -626,18 +719,22 @@ if __name__ == "__main__":
 			p = set()
 			w = generic_box.box_width
 			h = generic_box.box_height
+			l = generic_port.port_length
 			x0,y0 = self.position
 			
+			# Add two input ports
 			n_in = 2
 			for n in range(n_in):
-				p.add(port("IN"+str(n), "optical", True,  self, 1, (-w/2+x0,-h/2+(n+1/2)*h/n_in+y0), 0))
+				p.add(port("IN"+str(n), "optical", True,  self, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
 			
+			# ...and two outputs
 			n_out = 2
 			for n in range(n_out):
-				p.add(port("OUT"+str(n), "optical", False, self, 1, (+w/2+x0,-h/2+(n+1/2)*h/n_out+y0), 180))
+				p.add(port("OUT"+str(n), "optical", False, self, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
 			
 			self.ports = p
 			
+			# Use a generic box for now
 			self.graphic = generic_box(self.reference_designator, position=self.position)
 			
 		
@@ -651,13 +748,27 @@ if __name__ == "__main__":
 # 	w = switch()
 # 	bsa = beamsplitter()
 # 	i = switch()
-	bs = beamsplitter()
+	
+	
+	bs0 = beamsplitter()
+	bs0.position = (-200,-20)
+	bs1 = beamsplitter()
+	bs1.position = (+200,+20)
+	
+	bs0.ports['OUT0'].connect(bs1.ports['IN0'])
+	bs0.ports['OUT1'].connect(bs1.ports['IN1'])
+	
+	print ("OUT0 connected ports: {:}".format(bs0.ports['OUT0'].connected_ports))
+	print ("IN0 connected ports: {:}".format(bs1.ports['IN0'].connected_ports))
 	
 	from time import sleep
-	sleep(1.0)
-	bs.position = (-100,0)
 	
-# 	g0 = generic_box("H100", position=(100,100) )
-# 	g1 = generic_box("H101", position=(-50,-50), angle=15)
+	sleep(1.0)
+	
+	bs0.position = (-100, 20)
+	
+	sleep(1.0)
+	
+	bs1.position = ( 100,-20)
 	
 	turtle.exitonclick()
