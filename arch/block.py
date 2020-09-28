@@ -1,26 +1,18 @@
 """
-Functions and objects describing optical physics and optical components.
-
-Wishlist
---------
- * Basic classical modeler (Monte Carlo)
- * Basic classical modeler (incoherent)
- * Classical modeler (coherent)
- * Intermediate quantum modeler (Fock on single modes)
- * Advanced quantum modeler (Fock on multiple spectro-temporal modes, Gaussian?)
+Functions and objects describing abstract components.
  
 Structure
 =========
 
-base_optic
+base_block
  * Contains compact model
  * Takes input parameters
  * Has input and output ports
  * Can compute output from input state
 
 complex_optic
- * Inherits from base_optic
- * Contains any number of base_optic and complex_optic's
+ * Inherits from base_block
+ * Contains any number of base_block and complex_optic's
  * Contains a map of internal io ports
  * Can compactly model contents
  
@@ -513,7 +505,7 @@ class generic_port(graphic):
 	
 
 
-class base_optic:
+class base_block:
 	"""
 	Base class for optical components.
 	
@@ -551,14 +543,14 @@ class base_optic:
 		
 		# Handle reference designator generation
 		try:
-			existing_indices = base_optic.reference_designators[self.reference_prefix]
+			existing_indices = base_block.reference_designators[self.reference_prefix]
 			self.reference_index = max(existing_indices) + 1
 			
 		except KeyError:
 			self.reference_index = 0
-			base_optic.reference_designators.update( {self.reference_prefix:set()} )
+			base_block.reference_designators.update( {self.reference_prefix:set()} )
 		
-		base_optic.reference_designators[ self.reference_prefix ].add( self.reference_index )
+		base_block.reference_designators[ self.reference_prefix ].add( self.reference_index )
 		
 		self.reference_designator = self.reference_prefix + str(self.reference_index)
 		
@@ -647,134 +639,7 @@ class base_optic:
 		pass
 	
 	
-class complex_optic(base_optic):
+class complex_block(base_block):
 	"""
 	Optical component combining several other optical components.
 	"""
-
-
-
-if __name__ == "__main__":
-	
-	print ("Hello world")
-	
-	class switch(base_optic):
-		def __init__(self):
-			self.reference_prefix = "X"
-			self.supported_models = ["incoherent"]
-			self.n_spatial_modes = 2
-			
-			super(type(self), self).__init__()
-		
-		def model_matrix(self, state = 0):
-			if state == 0:
-				m = np.array([[1.0, 0.0], [0.0, 1.0]])
-			elif state == 1:
-				m = np.array([[0.0, 1.0], [1.0, 0.0]])
-			
-			return m
-	
-	
-	class beamsplitter(base_optic):
-		
-		reference_prefix = "BS"
-		
-		def define(self, reflectivity=0.5):
-			
-			# Internal variable(s)
-			self.reflectivity = reflectivity
-			
-			# Setup ports
-			w = generic_box.box_width
-			h = generic_box.box_height
-			l = generic_port.port_length
-			x0,y0 = self.position
-			
-			# Add two input ports
-			n_in = 2
-			for n in range(n_in):
-				self.ports.add(port("IN"+str(n), "optical", True,  self, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
-			
-			# ...and two outputs
-			n_out = 2
-			for n in range(n_out):
-				self.ports.add(port("OUT"+str(n), "optical", False, self, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
-			
-			# Setup graphic
-			self.graphic = generic_box(self.reference_designator, position=self.position)
-			
-		
-		def compute(self):
-			# Model matrix
-			r = np.sqrt(self.reflectivity)
-			t = np.sqrt(1-r**2) * 1j
-			m = np.array([ [r, t], 
-						   [t, r] ])
-			
-			# Input vector
-			vin = np.array([[self.ports['IN0'].value],
-							[self.ports['IN1'].value]])
-			
-			# Output vector
-			vout = m @ vin
-			
-			# Set output port values
-			self.ports['OUT0'].value = vout.flat[0]
-			self.ports['OUT1'].value = vout.flat[1]
-			
-			
-	class phase_shift(base_optic):
-		
-		reference_prefix = "P"
-		
-		def define(self, phase=0):
-			
-			# Internal variable(s)
-			self.phase = phase
-			
-			# Setup ports
-			w = generic_box.box_width
-			l = generic_port.port_length
-			x0,y0 = self.position
-			
-			# Add ports
-			self.ports.add(port("IN", "optical", True,  self, 1, (-w/2+x0-l,y0), 0))
-			self.ports.add(port("OUT", "optical", False, self, 1, (+w/2+x0+l,y0), 180))
-			
-			# Setup graphic
-			self.graphic = generic_box(self.reference_designator, position=self.position)
-			
-		
-		def compute(self):
-			
-			self.ports['OUT'].value = np.exp(1j*self.phase) * self.ports['IN'].value
-	
-	
-	from time import sleep
-	
-	bs0 = beamsplitter(reflectivity=0.5)
-	bs0.position = (-200,+20)
-	
-	ps = phase_shift(phase=0)
-	ps.position = (0,-40)
-	
-	bs1 = beamsplitter()
-	bs1.position = (+200,+20)
-	
-	bs0.ports['OUT0'].connect(ps.ports['IN'])
-	ps.ports['OUT'].connect(bs1.ports['IN0'])
-	bs0.ports['OUT1'].connect(bs1.ports['IN1'])
-	
-	
-	bs0.ports['IN0'].value = 1.0
-	bs0.ports['IN1'].value = 0.0
-	
-	sleep(0.5)
-	
-	
-	for phase in np.linspace(0,np.pi,10):
-		ps.phase = phase
-		bs0.compute()
-		ps.compute()
-		bs1.compute()
-		print("phase={:.3f}, output={:}".format(phase,bs1.out_ports))
