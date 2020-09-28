@@ -2,14 +2,14 @@ import unittest
 import importlib
 import os,sys
 
-__all__ = ['TestInstallation']
+__all__ = ['test_installation']
 
-class TestInstallation(unittest.TestCase):
+class test_installation(unittest.TestCase):
 	'''
 	Test correct installation and importing of packages in requirements.txt
 	'''
 
-	def testImportRequirements(self):
+	def test_import_requirements(self):
 		# Load the module strings in requirements.txt as a list 
 		fn = os.path.join(os.path.dirname(__file__), '..', 'requirements.txt')
 		with open(fn, 'r') as f:
