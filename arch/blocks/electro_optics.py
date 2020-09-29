@@ -7,9 +7,9 @@ import numpy as np
 from arch.block import base_block
 from arch.vis.generic import generic_box, generic_port
 from arch.port import port
-from arch.models.electro-optic.digital.coherent import switch_basic
+from arch.models.electro_optic.digital.coherent import switch_basic
 
-class switch(base_block):
+class switch_2x2(base_block):
 	"""
 	extinction_ratio: ratio of desired signal to undesired signal from wrong port
 	"""
@@ -50,15 +50,17 @@ class switch(base_block):
 		
 		# Setup model matrix list
 		def model_matrix_func_off(extinction_ratio):
-			r = np.sqrt(1-extinction_ratio)
-			t = np.sqrt(extinction_ratio) * 1j
+			leak = 1/extinction_ratio
+			r = np.sqrt(1-leak)
+			t = np.sqrt(leak) * 1j
 			m = np.array([ [r, t], 
 						   [t, r] ])
 			return m
 		
 		def model_matrix_func_on(extinction_ratio):
-			r = np.sqrt(extinction_ratio)
-			t = np.sqrt(1-extinction_ratio) * 1j
+			leak = 1/extinction_ratio
+			r = np.sqrt(leak)
+			t = np.sqrt(1-leak) * 1j
 			m = np.array([ [r, t], 
 						   [t, r] ])
 			return m

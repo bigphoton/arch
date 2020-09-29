@@ -5,7 +5,7 @@ Functions and objects describing digital-input coherent-effect switches.
 import numpy
 from arch.models import model
 
-class switch_basic(model.model):
+class switch_basic(model):
 	"""
 	Digital input single-mode unitary output model.
 	matrix_func_list: list or dict of functions returning n-by-n complex numpy array;
@@ -25,7 +25,7 @@ class switch_basic(model.model):
 	
 	def update_params(self, new_params):
 		n = len(self.matrix_func_list)
-		self.model_matrix_list = [self.matrix_func_list[i](**model_params) for i in range(n)]
+		self.model_matrix_list = [self.matrix_func_list[i](**new_params) for i in range(n)]
 	
 	
 	def compute(self, input_vector):
@@ -33,7 +33,13 @@ class switch_basic(model.model):
 		switch_value = int(input_vector[-1].value)
 		
 		# Get optical values from ports
-		vin = numpy.array([e.value for e in input_vector[:-1]])
+		vin = []
+		for e in input_vector[:-1]:
+			value = e.value
+			if value is None:
+				value = 0.0
+			vin.append(value)
+		vin = numpy.array(vin)
 		
 		m = self.model_matrix_list[switch_value]
 		
