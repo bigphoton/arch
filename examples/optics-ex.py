@@ -8,7 +8,6 @@ sys.path.insert(0,'..')
 
 from arch.blocks import optics
 
-
 import numpy as np
 	
 print ("Hello world")

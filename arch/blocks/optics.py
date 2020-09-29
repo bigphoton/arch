@@ -3,10 +3,11 @@ Functions and objects describing optical components.
 """
 
 
-from ..block import base_block
 import numpy as np
-from ..vis.generic import generic_box, generic_port
-from ..port import port
+from arch.block import base_block
+from arch.vis.generic import generic_box, generic_port
+from arch.port import port
+from arch.models.optical.classical.linear import linear_basic
 
 class beamsplitter(base_block):
 	
@@ -14,46 +15,44 @@ class beamsplitter(base_block):
 	
 	def define(self, reflectivity=0.5):
 		
-		# Internal variable(s)
-		self.reflectivity = reflectivity
-		
 		# Setup ports
 		w = generic_box.box_width
 		h = generic_box.box_height
 		l = generic_port.port_length
 		x0,y0 = self.position
 		
+		
 		# Add two input ports
 		n_in = 2
 		for n in range(n_in):
-			self.ports.add(port("IN"+str(n), "optical", True,  self, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
+			name = "IN"+str(n)
+			self.ports.add(port(name, "optical", True, self, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
+			self.in_port_order.append(name)
 		
 		# ...and two outputs
 		n_out = 2
 		for n in range(n_out):
-			self.ports.add(port("OUT"+str(n), "optical", False, self, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
+			name = "OUT"+str(n)
+			self.ports.add(port(name, "optical", False, self, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
+			self.out_port_order.append(name)
 		
 		# Setup graphic
 		self.graphic = generic_box(self.reference_designator, position=self.position)
 		
-	
-	def compute(self):
-		# Model matrix
-		r = np.sqrt(self.reflectivity)
-		t = np.sqrt(1-r**2) * 1j
-		m = np.array([ [r, t], 
-					   [t, r] ])
 		
-		# Input vector
-		vin = np.array([[self.ports['IN0'].value],
-						[self.ports['IN1'].value]])
+		# Setup model matrix
+		def model_matrix_func(reflectivity):
+			r = np.sqrt(reflectivity)
+			t = np.sqrt(1-r**2) * 1j
+			m = np.array([ [r, t], 
+						   [t, r] ])
+			return m
 		
-		# Output vector
-		vout = m @ vin
+		# Model parameter(s)
+		self.model_params.update({'reflectivity':reflectivity})
 		
-		# Set output port values
-		self.ports['OUT0'].value = vout.flat[0]
-		self.ports['OUT1'].value = vout.flat[1]
+		# Set model
+		self.model = linear_basic(model_matrix_func, self.model_params)
 		
 		
 class phase_shift(base_block):
@@ -74,10 +73,19 @@ class phase_shift(base_block):
 		self.ports.add(port("IN", "optical", True,  self, 1, (-w/2+x0-l,y0), 0))
 		self.ports.add(port("OUT", "optical", False, self, 1, (+w/2+x0+l,y0), 180))
 		
+		self.in_port_order = ["IN"]
+		self.out_port_order = ["OUT"]
+		
 		# Setup graphic
 		self.graphic = generic_box(self.reference_designator, position=self.position)
 		
-	
-	def compute(self):
 		
-		self.ports['OUT'].value = np.exp(1j*self.phase) * self.ports['IN'].value
+		# Setup model matrix
+		def model_matrix_func(phase):
+			return np.array([[np.exp(1j*phase)]])
+		
+		# Model parameter(s)
+		self.model_params.update({'phase':phase})
+		
+		# Set model
+		self.model = linear_basic(model_matrix_func, self.model_params)

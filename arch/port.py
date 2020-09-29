@@ -9,10 +9,10 @@ class port:
 	"""
 	Class encapsulating an input or output port attached to a component.
 	
+	name: name of port
+	type: name of port type; connected ports must have matching type
 	is_input: port is an input port
 	is_output: port is an output port (not is_output)
-	type: name of port type; connected ports must have matching type
-	name: name of port
 	connected_ports: list of other port instances connected to this one
 	max_connections: maximum number of ports connected to this one
 	value: the value emitted by the output port and received by the input port in a connection
