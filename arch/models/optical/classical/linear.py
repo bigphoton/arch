@@ -5,7 +5,7 @@ Functions and objects describing optical components.
 import numpy
 from arch.models import model
 
-class linear_basic(model.model):
+class linear_basic(model):
 	"""
 	Linear optical model for classical optics.
 	unitary_matrix_func: function returning n-by-n complex numpy array; should be unitary
