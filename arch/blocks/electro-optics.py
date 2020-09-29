@@ -2,22 +2,71 @@
 Functions and objects describing electro-optic components.
 """
 
-from ..block import base_block
+
 import numpy as np
-	
-	
+from arch.block import base_block
+from arch.vis.generic import generic_box, generic_port
+from arch.port import port
+from arch.models.electro-optic.digital.coherent import switch_basic
+
 class switch(base_block):
-	def __init__(self):
-		self.reference_prefix = "X"
-		self.supported_models = ["incoherent"]
-		self.n_spatial_modes = 2
-		
-		super(type(self), self).__init__()
+	"""
+	extinction_ratio: ratio of desired signal to undesired signal from wrong port
+	"""
 	
-	def model_matrix(self, state = 0):
-		if state == 0:
-			m = np.array([[1.0, 0.0], [0.0, 1.0]])
-		elif state == 1:
-			m = np.array([[0.0, 1.0], [1.0, 0.0]])
+	reference_prefix = "SW"
+	
+	def define(self, extinction_ratio=1000.0):
 		
-		return m
+		# Setup ports
+		w = generic_box.box_width
+		h = generic_box.box_height
+		l = generic_port.port_length
+		x0,y0 = self.position
+		
+		
+		# Add two input ports
+		n_in = 2
+		for n in range(n_in):
+			name = "IN"+str(n)
+			self.ports.add(port(name, "optical", True, self, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
+			self.in_port_order.append(name)
+		
+		# ...and two outputs
+		n_out = 2
+		for n in range(n_out):
+			name = "OUT"+str(n)
+			self.ports.add(port(name, "optical", False, self, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
+			self.out_port_order.append(name)
+		
+		# ...and a digital input
+		name = "DIG"
+		self.ports.add(port(name, "digital", True, self, 1, (x0,h/2+y0), 0))
+		self.in_port_order.append(name)
+		
+		# Setup graphic
+		self.graphic = generic_box(self.reference_designator, position=self.position)
+		
+		
+		# Setup model matrix list
+		def model_matrix_func_off(extinction_ratio):
+			r = np.sqrt(1-extinction_ratio)
+			t = np.sqrt(extinction_ratio) * 1j
+			m = np.array([ [r, t], 
+						   [t, r] ])
+			return m
+		
+		def model_matrix_func_on(extinction_ratio):
+			r = np.sqrt(extinction_ratio)
+			t = np.sqrt(1-extinction_ratio) * 1j
+			m = np.array([ [r, t], 
+						   [t, r] ])
+			return m
+			
+		model_matrix_func_list = [model_matrix_func_off, model_matrix_func_on]
+		
+		# Model parameter(s)
+		self.model_params.update({'extinction_ratio':extinction_ratio})
+		
+		# Set model
+		self.model = switch_basic(model_matrix_func_list, self.model_params)

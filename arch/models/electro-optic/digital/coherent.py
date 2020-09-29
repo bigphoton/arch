@@ -5,28 +5,37 @@ Functions and objects describing digital-input coherent-effect switches.
 import numpy
 from arch.models import model
 
-class basic(model.model):
+class switch_basic(model.model):
 	"""
-	Digital input {1,0} single-mode unitary output model.
-	unitary_matrix_func: function returning n-by-n complex numpy array; should be unitary
+	Digital input single-mode unitary output model.
+	matrix_func_list: list or dict of functions returning n-by-n complex numpy array;
+						one for each digital input; must be subscriptable with digital values
+	
+	Last element in input vector is digital switch value (type int).
 	"""
 	
-	def __init__(self, unitary_matrix_func, model_params):
+	def __init__(self, matrix_func_list, model_params):
 		super(type(self), self).__init__()
 		
-		self.unitary_matrix_func = unitary_matrix_func
-		self.model_matrix = self.unitary_matrix_func(**model_params)
+		self.matrix_func_list = matrix_func_list
+		
+		n = len(self.matrix_func_list)
+		self.model_matrix_list = [self.matrix_func_list[i](**model_params) for i in range(n)]
 	
 	
 	def update_params(self, new_params):
-		self.model_matrix = self.unitary_matrix_func(**new_params)
+		n = len(self.matrix_func_list)
+		self.model_matrix_list = [self.matrix_func_list[i](**model_params) for i in range(n)]
 	
 	
 	def compute(self, input_vector):
-		# Get values from ports
-		vin = numpy.array([e.value for e in input_vector])
+		# Get digital value from port
+		switch_value = int(input_vector[-1].value)
 		
-		m = self.model_matrix
+		# Get optical values from ports
+		vin = numpy.array([e.value for e in input_vector[:-1]])
+		
+		m = self.model_matrix_list[switch_value]
 		
 		# Do matrix multiplication
 		vout = m @ vin
