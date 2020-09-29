@@ -12,11 +12,12 @@ from arch.models.electro_optic.digital.coherent import switch_basic
 class switch_2x2(base_block):
 	"""
 	extinction_ratio: ratio of desired signal to undesired signal from wrong port
+	loss_dB: positive number of decibels of loss (0 dB -> 100% tx; 10 dB -> 10% tx)
 	"""
 	
 	reference_prefix = "SW"
 	
-	def define(self, extinction_ratio=1000.0):
+	def define(self, loss_dB = 3.0, extinction_ratio=1000.0):
 		
 		# Setup ports
 		w = generic_box.box_width
@@ -49,18 +50,20 @@ class switch_2x2(base_block):
 		
 		
 		# Setup model matrix list
-		def model_matrix_func_off(extinction_ratio):
+		def model_matrix_func_off(loss_dB=loss_dB, extinction_ratio=extinction_ratio):
 			leak = 1/extinction_ratio
-			r = np.sqrt(1-leak)
-			t = np.sqrt(leak) * 1j
+			tx = 10**(-loss_dB/10)
+			r = np.sqrt(tx*(1-leak))
+			t = np.sqrt(tx*leak) * 1j
 			m = np.array([ [r, t], 
 						   [t, r] ])
 			return m
 		
-		def model_matrix_func_on(extinction_ratio):
+		def model_matrix_func_on(loss_dB=loss_dB, extinction_ratio=extinction_ratio):
 			leak = 1/extinction_ratio
-			r = np.sqrt(leak)
-			t = np.sqrt(1-leak) * 1j
+			tx = 10**(-loss_dB/10)
+			r = np.sqrt(tx*leak)
+			t = np.sqrt(tx*(1-leak)) * 1j
 			m = np.array([ [r, t], 
 						   [t, r] ])
 			return m
