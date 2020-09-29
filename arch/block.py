@@ -154,7 +154,7 @@ class base_block:
 		"""
 		Convenience access to a filtered dict of input ports only
 		"""
-		return {p for p in self.ports if p.is_input}
+		return port_set({p for p in self.ports if p.is_input})
 	
 	
 	@property
@@ -162,7 +162,7 @@ class base_block:
 		"""
 		Convenience access to a filtered list of output ports only
 		"""
-		return {p for p in self.ports if p.is_output}
+		return port_set({p for p in self.ports if p.is_output})
 	
 	
 	def define(self, **kwargs):
