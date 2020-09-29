@@ -124,6 +124,8 @@ class port_set(set):
 	Build like a set, access elements like a set or like a dict.
 	"""
 	
+	# TODO: Support set addition (e.g. port_set({a_set}) + {another_set} )
+	
 	def __getitem__(self, key):
 		val = {e for e in self if e.name == key}.pop()
 		return val
