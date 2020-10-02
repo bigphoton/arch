@@ -25,7 +25,7 @@ class linear_basic(model):
 	def compute(self, input_vector):
 		# Get values from ports
 		vin = numpy.array([e.value for e in input_vector])
-		
+		#print(vin)
 		m = self.model_matrix
 		
 		# Do matrix multiplication
