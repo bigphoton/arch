@@ -24,7 +24,7 @@ class detector_basic(model):
 
         #Get values from input ports
         vin=float(np.abs(input_vector[0].value))
-        vout=np.array([np.random.choice([0,1],p=[1-np.abs(vin),np.abs(vin)])])
+        vout=np.array([1])#np.array([np.random.choice([0,1],p=[1-np.abs(vin),np.abs(vin)])])
         
         return vout.flat
     

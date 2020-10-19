@@ -39,23 +39,13 @@ bs0.ports['OUT1'].connect(bs1.ports['IN1'])
 bs1.ports['OUT0'].connect(spd1.ports['IN'])
 bs1.ports['OUT1'].connect(spd2.ports['IN'])
 
-bs0.ports['IN0'].value = 1.0
-bs0.ports['IN1'].value = 0.0
+bs0.ports['IN0'].value = 2
+bs0.ports['IN1'].value = 2
+
+def test_beamsplitter():
+	for i in range(10):
+		bs0.compute()
+		print("Beamsplitter1 outputs are Port1:" ,bs0.ports['OUT0'].value,"Port 2:", bs0.ports['OUT1'].value )
 
 
-
-
-
-for phase in np.linspace(0,np.pi,10):
-	ps.phase = phase
-	bs0.compute()
-	ps.compute()
-	bs1.compute()
-	spd1.compute()
-	spd2.compute()
-
-	print("Beamsplitter1 outputs are Port1:" ,bs1.ports['OUT0'].value,"Port 2:", bs1.ports['OUT1'].value )
-	print("Detection events are SPD1:",spd1.ports['OUT'].value,"SPD2:" ,spd2.ports['OUT'].value )
-
-	#print("phase={:.3f}, output={:}".format(phase,bs1.out_ports))
-sleep(10)
+test_beamsplitter()
