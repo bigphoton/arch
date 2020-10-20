@@ -37,5 +37,8 @@ class basic_spd(base_block):
         #setup graphic
         self.graphic=generic_box(self.reference_designator,position=self.position)
 
+        # Model parameter(s)
+        self.model_params.update({'efficiency':efficiency})
+
         #set model
-        self.model=detector_basic(self.model_params)
+        self.model=detector_basic(efficiency, self.model_params)

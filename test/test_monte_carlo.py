@@ -7,7 +7,7 @@ TO DO: Add more nuanced tests which check on deviation from the mean etc.
 """
 
 
-#sys.path.insert(0,"C:\\Users\\mr19164\\OneDrive - University of Bristol\\Documents\\PhD Project\\ArchCore\\arch\\")
+sys.path.insert(0,"C:\\Users\\mr19164\\OneDrive - University of Bristol\\Documents\\PhD Project\\ArchCore\\arch\\")
 
 from arch.simulations.monte_carlo import monte_carlo
 
