@@ -53,7 +53,7 @@ class base_block:
 	 * Calculates its own compact model
 	"""
 	
-	# Dictionary of reference designators for all optics
+	# Dictionary of reference designators for all blocks
 	reference_designators = dict()
 	
 	# To be overridden by subclasses:
