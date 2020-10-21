@@ -32,12 +32,13 @@ class detector_basic(model):
         #Get detector efficiency:
         efficiency=self.efficiency
 
-        if vin==1:
-            vout = np.array(monte_carlo.simulate(self,[0,1],[1-np.abs(efficiency),np.abs(efficiency)]))
+
+        if vin>=1:
+            vout = np.array(monte_carlo.simulate(self,[0,vin],[1-np.abs(efficiency),np.abs(efficiency)]))
         elif vin==0:
             vout=np.array([0])
         else:
-            raise Exception('Detector block can only currently take digital input')
+            raise Exception('Detector block can only currently take binary input')
    
         return vout.flat
     

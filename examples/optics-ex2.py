@@ -39,8 +39,8 @@ bs0.ports['OUT1'].connect(bs1.ports['IN1'])
 bs1.ports['OUT0'].connect(spd1.ports['IN'])
 bs1.ports['OUT1'].connect(spd2.ports['IN'])
 
-bs0.ports['IN0'].value = 2
-bs0.ports['IN1'].value = 2
+bs0.ports['IN0'].value = 1
+bs0.ports['IN1'].value = 1
 
 def test_beamsplitter():
 	for i in range(10):

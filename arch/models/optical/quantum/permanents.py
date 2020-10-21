@@ -129,8 +129,8 @@ class permanent(model):
                 for m in range(len(input_vector)):
                     prefactor=prefactor*(1/math.sqrt(math.factorial(input_vector[m])))*(1/math.sqrt(math.factorial(outcome[m])))
                 
-                probabilities.append(np.abs((perm*prefactor)**2))
-
+                probabilities.append(np.around(np.abs((perm*prefactor)**2),decimals=6))
+      
         return probabilities
 
 

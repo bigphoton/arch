@@ -4,7 +4,7 @@ Example architecture global.
 
 # Add the parent folder (outside of `examples`) to the path, so we can find the `arch` module
 import sys
-sys.path.insert(0,'..')
+sys.path.insert(0,"C:\\Users\\mr19164\\OneDrive - University of Bristol\\Documents\\PhD Project\\ArchCore\\arch\\")
 
 from arch.blocks import electro_optics
 from arch.blocks import logic
@@ -62,7 +62,7 @@ class architecture(object):
 		
 		G = self.graph
 		
-		graph_pos = nx.planar_layout(G)
+		graph_pos = nx.drawing.layout.planar_layout(G)
 		graph_pos = nx.spring_layout(G, pos=graph_pos, iterations=10000, threshold=1E-6)
 		
 		def edge_colour(e):
