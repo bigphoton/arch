@@ -3,8 +3,8 @@ Example digital logic.
 """
 
 # Add the parent folder (outside of `examples`) to the path, so we can find the `arch` module
-import sys
-sys.path.insert(0,'C:\\Users\\mr19164\\OneDrive - University of Bristol\\Documents\\PhD Project\\ArchCore\\arch\\')
+import sys, os
+sys.path.append(os.path.dirname(sys.path[0]))
 
 
 from arch.blocks import logic
