@@ -44,7 +44,7 @@ arch = architecture(blocks=[g, bs0, ps, bs1, bs2])
 for phase in linspace(0,pi,10):
 	ps.phase = phase
 	arch.compute()
-	print("phase={:.3f}, output={:}".format(phase, bs2.out_ports))
+	print("phase={:.3f}, output={:}".format(phase, bs2.ports['OUT0'].value) )
 
 
 arch.draw()
