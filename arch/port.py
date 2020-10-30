@@ -19,13 +19,13 @@ class port:
 	value_info: dict containing information about value (e.g. model type, dimensionality, etc.)
 	"""
 	
-	def __init__(self, name, type, is_input, owner, max_connections = 1, position=(0,0), angle=0):
+	def __init__(self, name, type, is_input, owner, value=None, max_connections = 1, position=(0,0), angle=0):
 		
 		self.name = name
 		self.type = type
 		self.is_input = is_input
 		self.connected_ports = set()
-		self.__value = None
+		self.__value = value
 		self.value_info = dict()
 		self.max_connections = max_connections
 		self.owner = owner
@@ -87,17 +87,33 @@ class port:
 		
 		
 	def __str__(self):
-		return ("port" 
-				+ (" '"+self.name+"'" if self.name != "" else "")
-				+ (" input" if self.is_input else "")
-				+ (" output" if self.is_output else "")
-				+ (" connected to {:}".format(self.connected_ports) if self.connected_ports != set() else "") )
+		s = "port"
+		s += (" '"+self.name+"'" if self.name != "" else "")
+		s += (" input" if self.is_input else "")
+		s += (" output" if self.is_output else "")
+		s += (" connected to {:}".format(self.connected_ports) if self.connected_ports != set() else "")
+		
+		try:
+			s += (" value is {:}".format(port.phasor(self.value) ) )
+		except:
+			s += (" value is {:}".format(self.value) )
+		
+		return s
+	
 	
 	def __repr__(self):
 		if self.is_output:
-			return "port('{:}',value={:.3f}\u2220{:.1f}\u00B0)".format(self.name, abs(self.value), np.degrees(np.angle(self.value)))
+			return "port('{:}', type={:}, value={:})".format(self.name, self.type, str(self.value))
 		else:
-			return "port('{:}',type={:})".format(self.name, self.type)
+			return "port('{:}', type={:})".format(self.name, self.type)
+	
+	
+	@classmethod
+	def phasor(cls, value):
+		"""Convenience complex formatting"""
+		
+		return "{:.3f}\u2220{:.1f}\u00B0".format(abs(value), np.degrees(np.angle(value)))
+		
 
 class input_port(port):
 	"""
