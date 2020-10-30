@@ -165,6 +165,22 @@ class base_block:
 		return port_set({p for p in self.ports if p.is_output})
 	
 	
+	@property
+	def in_state(self):
+		"""
+		Convenience access to values across input ports.
+		"""
+		return {p.name:p.value for p in self.ports if p.is_input}
+	
+	
+	@property
+	def out_state(self):
+		"""
+		Convenience access to values across output ports.
+		"""
+		return {p.name:p.value for p in self.ports if p.is_output}
+	
+	
 	def define(self, **kwargs):
 		"""
 		Method to be overridden by subclasses.

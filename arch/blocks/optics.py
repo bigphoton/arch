@@ -27,14 +27,14 @@ class beamsplitter(base_block):
 		n_in = 2
 		for n in range(n_in):
 			name = "IN"+str(n)
-			self.ports.add(port(name, "optical", True, self, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
+			self.ports.add(port(name, "optical", True, self, None, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
 			self.in_port_order.append(name)
 		
 		# ...and two outputs
 		n_out = 2
 		for n in range(n_out):
 			name = "OUT"+str(n)
-			self.ports.add(port(name, "optical", False, self, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
+			self.ports.add(port(name, "optical", False, self, None, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
 			self.out_port_order.append(name)
 		
 		# Setup graphic
@@ -72,8 +72,8 @@ class phase_shift(base_block):
 		x0,y0 = self.position
 		
 		# Add ports
-		self.ports.add(port("IN", "optical", True,  self, 1, (-w/2+x0-l,y0), 0))
-		self.ports.add(port("OUT", "optical", False, self, 1, (+w/2+x0+l,y0), 180))
+		self.ports.add(port("IN", "optical", True,  self, None, 1, (-w/2+x0-l,y0), 0))
+		self.ports.add(port("OUT", "optical", False, self, None, 1, (+w/2+x0+l,y0), 180))
 		
 		self.in_port_order = ["IN"]
 		self.out_port_order = ["OUT"]

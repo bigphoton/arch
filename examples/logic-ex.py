@@ -6,14 +6,15 @@ Example digital logic.
 import sys
 sys.path.insert(0,'C:\\Users\\mr19164\\OneDrive - University of Bristol\\Documents\\PhD Project\\ArchCore\\arch\\')
 
-from arch.blocks import logic as electronics
+
+from arch.blocks import logic
 
 # AND - NOT
 
-first_gate = electronics.and_gate()
+first_gate = logic.and_gate()
 first_gate.position = (-200,+20)
 
-second_gate = electronics.not_gate()
+second_gate = logic.not_gate()
 second_gate.position = (+200,+20)
 
 
@@ -33,8 +34,8 @@ for a,b in [(0,0),(0,1),(1,0),(1,1)]:
 
 # NAND - NOT
 
-first_gate = electronics.nand_gate()
-second_gate = electronics.not_gate()
+first_gate = logic.nand_gate()
+second_gate = logic.not_gate()
 
 first_gate.ports['OUT'].connect(second_gate.ports['IN'])
 
@@ -51,8 +52,8 @@ for a,b in [(0,0),(0,1),(1,0),(1,1)]:
 
 # OR - NOT
 
-first_gate = electronics.or_gate()
-second_gate = electronics.not_gate()
+first_gate = logic.or_gate()
+second_gate = logic.not_gate()
 
 first_gate.ports['OUT'].connect(second_gate.ports['IN'])
 
