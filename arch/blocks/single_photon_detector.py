@@ -26,12 +26,12 @@ class basic_spd(base_block):
 
         #add single optical input
         name="IN"
-        self.ports.add(port(name,"optical", True, self, 1 ,(x0,h/2+y0),0))
+        self.ports.add(port(name,"optical", True, self, None, 1 ,(x0,h/2+y0),0))
         self.in_port_order.append(name)
 
         #add a single digital output
         name="OUT"
-        self.ports.add(port(name,"digital", False, self, 1, (w/2+x0+1,-h/2+(1/2)*h+y0),180))
+        self.ports.add(port(name,"digital", False, self, None, 1, (w/2+x0+1,-h/2+(1/2)*h+y0),180))
         self.out_port_order.append(name)
 
         #setup graphic
