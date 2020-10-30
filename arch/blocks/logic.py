@@ -31,8 +31,8 @@ class not_gate(base_block):
 		x0,y0 = self.position
 		
 		# Add ports
-		self.ports.add(port("IN", "digital", True,  self, 1, (-w/2+x0-l,y0), 0))
-		self.ports.add(port("OUT", "digital", False, self, 10, (+w/2+x0+l,y0), 180))
+		self.ports.add(port("IN", "digital", True,  self, None, 1, (-w/2+x0-l,y0), 0))
+		self.ports.add(port("OUT", "digital", False, self, None, 10, (+w/2+x0+l,y0), 180))
 		
 		self.in_port_order = ["IN"]
 		self.out_port_order = ["OUT"]
@@ -59,9 +59,9 @@ class and_gate(base_block):
 		x0,y0 = self.position
 		
 		# Add ports
-		self.ports.add(port("IN0", "digital", True,  self, 1, (-w/2+x0-l,+20+y0), 0))
-		self.ports.add(port("IN1", "digital", True,  self, 1, (-w/2+x0-l,-20+y0), 0))
-		self.ports.add(port("OUT", "digital", False, self, 10, (+w/2+x0+l,y0), 180))
+		self.ports.add(port("IN0", "digital", True,  self, None, 1, (-w/2+x0-l,+20+y0), 0))
+		self.ports.add(port("IN1", "digital", True,  self, None, 1, (-w/2+x0-l,-20+y0), 0))
+		self.ports.add(port("OUT", "digital", False, self, None, 10, (+w/2+x0+l,y0), 180))
 		
 		self.in_port_order = ["IN0","IN1"]
 		self.out_port_order = ["OUT"]
@@ -88,9 +88,9 @@ class or_gate(base_block):
 		x0,y0 = self.position
 		
 		# Add ports
-		self.ports.add(port("IN0", "digital", True,  self, 1, (-w/2+x0-l,+20+y0), 0))
-		self.ports.add(port("IN1", "digital", True,  self, 1, (-w/2+x0-l,-20+y0), 0))
-		self.ports.add(port("OUT", "digital", False, self, 10, (+w/2+x0+l,y0), 180))
+		self.ports.add(port("IN0", "digital", True,  self, None, 1, (-w/2+x0-l,+20+y0), 0))
+		self.ports.add(port("IN1", "digital", True,  self, None, 1, (-w/2+x0-l,-20+y0), 0))
+		self.ports.add(port("OUT", "digital", False, self, None, 10, (+w/2+x0+l,y0), 180))
 		
 		self.in_port_order = ["IN0","IN1"]
 		self.out_port_order = ["OUT"]
@@ -117,9 +117,9 @@ class nand_gate(base_block):
 		x0,y0 = self.position
 		
 		# Add ports
-		self.ports.add(port("IN0", "digital", True,  self, 1, (-w/2+x0-l,+20+y0), 0))
-		self.ports.add(port("IN1", "digital", True,  self, 1, (-w/2+x0-l,-20+y0), 0))
-		self.ports.add(port("OUT", "digital", False, self, 10, (+w/2+x0+l,y0), 180))
+		self.ports.add(port("IN0", "digital", True,  self, None, 1, (-w/2+x0-l,+20+y0), 0))
+		self.ports.add(port("IN1", "digital", True,  self, None, 1, (-w/2+x0-l,-20+y0), 0))
+		self.ports.add(port("OUT", "digital", False, self, None, 10, (+w/2+x0+l,y0), 180))
 		
 		self.in_port_order = ["IN0","IN1"]
 		self.out_port_order = ["OUT"]
