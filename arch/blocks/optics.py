@@ -8,6 +8,7 @@ from arch.block import base_block
 from arch.vis.generic import generic_box, generic_port
 from arch.port import port
 from arch.models.optical.classical.linear import linear_basic
+from arch.models.optical.quantum.permanents import permanent
 
 class beamsplitter(base_block):
 	
@@ -46,13 +47,14 @@ class beamsplitter(base_block):
 			t = np.sqrt(1-r**2) * 1j
 			m = np.array([ [r, t], 
 						   [t, r] ])
+			
 			return m
 		
 		# Model parameter(s)
 		self.model_params.update({'reflectivity':reflectivity})
 		
 		# Set model
-		self.model = linear_basic(model_matrix_func, self.model_params)
+		self.model = permanent(model_matrix_func, self.model_params)
 		
 		
 class phase_shift(base_block):

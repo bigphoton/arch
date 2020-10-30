@@ -36,6 +36,7 @@ class switch_basic(model):
 		vin = []
 		for e in input_vector[:-1]:
 			value = e.value
+			print(value)
 			if value is None:
 				value = 0.0
 			vin.append(value)

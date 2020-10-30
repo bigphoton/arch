@@ -13,7 +13,7 @@ class test_installation(unittest.TestCase):
 		# Load the module strings in requirements.txt as a list 
 		fn = os.path.join(os.path.dirname(__file__), '..', 'requirements.txt')
 		with open(fn, 'r') as f:
-			module_names = f.readlines()
+			module_names = f.read().splitlines() 
 		
 		# Loop through modules and keep track of which ones fail importing
 		errors = []
