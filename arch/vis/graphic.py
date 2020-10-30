@@ -54,21 +54,11 @@ class graphic:
 		
 		self.debug = debug
 		
-		# Set up turtle
-		# Stop turtle animations
-		graphic.run_animations(False)
-		# Instantiate new turtle for our use
-		self.turtle = turtle.Turtle()
-		turtle.delay(100)
-		
 		# Set path
 		self.path = path
 		
 		# Start watching attributes
 		self.graphical_attributes.extend(["position", "angle", "path", "debug"])
-		
-		# Draw self
-		self.draw()
 	
 	
 	@classmethod
@@ -132,9 +122,6 @@ class graphic:
 				c = value[2*i]
 				if type(c) != str:
 					raise RuntimeError("Command at position {:} in path is invalid.".format(2*i))
-			
-			# Draw
-			self.draw()
 
 		# If the attribute is on our redraw watch list and is changed, update path
 		#  Updating path forces a redraw via the code above
@@ -154,6 +141,15 @@ class graphic:
 		"""
 		Redraw graphic based on encoded path.
 		"""
+		
+		# Set up turtle if not already done
+		if not hasattr(self, 'turtle'):
+			# Stop turtle animations
+			graphic.run_animations(False)
+			# Instantiate new turtle for our use
+			self.turtle = turtle.Turtle()
+			turtle.delay(100)
+		
 		self.turtle.reset()
 		self.turtle.pu()
 		self.turtle.goto(self.position)
