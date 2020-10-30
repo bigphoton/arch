@@ -181,6 +181,13 @@ class base_block:
 		return {p.name:p.value for p in self.ports if p.is_output}
 	
 	
+	@property
+	def io_signature(self):
+		"""Get a signature of the input and output ports and port types"""
+		
+		return {'in':{p.name:p.type for p in self.in_ports}, 'out':{p.name:p.type for p in self.out_ports} }
+	
+	
 	def define(self, **kwargs):
 		"""
 		Method to be overridden by subclasses.
