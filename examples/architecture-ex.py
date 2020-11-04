@@ -6,11 +6,13 @@ Example architecture global.
 import sys, os
 sys.path.append(os.path.dirname(sys.path[0]))
 
+from arch.architecture import architecture
 from arch.blocks import electro_optics
 from arch.blocks import logic
 from arch.blocks import optics
 
-import numpy as np
+from numpy import linspace, pi
+
 
 
 import networkx as nx
@@ -168,10 +170,10 @@ if False:
 arch = architecture(blocks=[g, bs0, ps, bs1, bs2])
 
 
-for phase in np.linspace(0,np.pi,10):
+for phase in linspace(0,pi,10):
 	ps.phase = phase
 	arch.compute()
-	print("phase={:.3f}, output={:}".format(phase, bs2.out_ports))
+	print("phase={:.3f}, output={:}".format(phase, bs2.ports['OUT0'].value) )
 
 
 arch.draw()
