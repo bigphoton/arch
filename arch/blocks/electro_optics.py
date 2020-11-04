@@ -30,19 +30,19 @@ class switch_2x2(base_block):
 		n_in = 2
 		for n in range(n_in):
 			name = "IN"+str(n)
-			self.ports.add(port(name, "optical", True, self, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
+			self.ports.add(port(name, "optical", True, self, None, 1, (-w/2+x0-l,-h/2+(n+1/2)*h/n_in+y0), 0))
 			self.in_port_order.append(name)
 		
 		# ...and two outputs
 		n_out = 2
 		for n in range(n_out):
 			name = "OUT"+str(n)
-			self.ports.add(port(name, "optical", False, self, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
+			self.ports.add(port(name, "optical", False, self, None, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
 			self.out_port_order.append(name)
 		
 		# ...and a digital input
 		name = "DIG"
-		self.ports.add(port(name, "digital", True, self, 1, (x0,h/2+y0), 0))
+		self.ports.add(port(name, "digital", True, self, None, 1, (x0,h/2+y0), 0))
 		self.in_port_order.append(name)
 		
 		# Setup graphic

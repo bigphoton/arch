@@ -53,7 +53,7 @@ class base_block:
 	 * Calculates its own compact model
 	"""
 	
-	# Dictionary of reference designators for all optics
+	# Dictionary of reference designators for all blocks
 	reference_designators = dict()
 	
 	# To be overridden by subclasses:
@@ -165,6 +165,22 @@ class base_block:
 		return port_set({p for p in self.ports if p.is_output})
 	
 	
+	@property
+	def in_state(self):
+		"""
+		Convenience access to values across input ports.
+		"""
+		return {p.name:p.value for p in self.ports if p.is_input}
+	
+	
+	@property
+	def out_state(self):
+		"""
+		Convenience access to values across output ports.
+		"""
+		return {p.name:p.value for p in self.ports if p.is_output}
+	
+	
 	def define(self, **kwargs):
 		"""
 		Method to be overridden by subclasses.
@@ -185,6 +201,9 @@ class base_block:
 		"""
 		Method to propagate state from component input ports to output ports.
 		"""
+		#TODO: Have a more appropriate method top propogate through a state in the fully quantum case
+		# - deoesn't really make sense to have two output ports with distinct values 
+
 		# Compose the input vector based on the input port order
 		# TODO: Would be great if this happened automatically when the input ports were updated
 		vin = np.array([self.ports[name] for name in self.in_port_order])

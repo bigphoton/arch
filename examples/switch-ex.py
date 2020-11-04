@@ -1,10 +1,10 @@
 """
-Example optics.
+Example for switches.
 """
 
 # Add the parent folder (outside of `examples`) to the path, so we can find the `arch` module
-import sys
-sys.path.insert(0,'..')
+import sys, os
+sys.path.append(os.path.dirname(sys.path[0]))
 
 from arch.blocks import electro_optics
 from arch.blocks import optics
@@ -14,31 +14,21 @@ import numpy as np
 print ("Hello world")
 
 
-from time import sleep
 
-bs0 = optics.beamsplitter(reflectivity=0.5)
-bs0.position = (-200,+20)
+bs = optics.beamsplitter(reflectivity=0.5, model_choice='linear')
+bs.position = (-200,+20)
 
-ps = optics.phase_shift(phase=0)
-ps.position = (0,-40)
+switch = electro_optics.switch_2x2(extinction_ratio = float('inf'), loss_dB = 1.0)
 
-bs1 = optics.beamsplitter()
-bs1.position = (+200,+20)
-
-bs0.ports['OUT0'].connect(ps.ports['IN'])
-ps.ports['OUT'].connect(bs1.ports['IN0'])
-bs0.ports['OUT1'].connect(bs1.ports['IN1'])
+bs.ports['OUT0'].connect(switch.ports['IN0'])
 
 
-bs0.ports['IN0'].value = 1.0
-bs0.ports['IN1'].value = 0.0
+bs.ports['IN0'].value = 1.0
+bs.ports['IN1'].value = 0.0
 
-sleep(0.5)
-
-
-for phase in np.linspace(0,np.pi,10):
-	ps.phase = phase
-	bs0.compute()
-	ps.compute()
-	bs1.compute()
-	print("phase={:.3f}, output={:}".format(phase,bs1.out_ports))
+for switch_state in [0, 1]:
+	switch.ports['DIG'].value = switch_state
+	bs.compute()
+	switch.compute()
+	out_ports = [bs.out_ports["OUT1"], switch.ports["OUT0"], switch.ports["OUT1"] ]
+	print("switch state={:}, output={:}".format(switch_state, out_ports))
