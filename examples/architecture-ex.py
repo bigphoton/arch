@@ -146,8 +146,8 @@ from time import sleep
 g = logic.not_gate()
 bs0 = electro_optics.switch_2x2()
 ps = optics.phase_shift(phase=0)
-bs1 = optics.beamsplitter()
-bs2 = optics.beamsplitter()
+bs1 = optics.beamsplitter(model_choice='linear')
+bs2 = optics.beamsplitter(model_choice='linear')
 
 g.ports['OUT'].connect(bs0.ports['DIG'])
 bs0.ports['OUT0'].connect(ps.ports['IN'])

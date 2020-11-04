@@ -15,7 +15,7 @@ print ("Hello world")
 
 
 
-bs = optics.beamsplitter(reflectivity=0.5)
+bs = optics.beamsplitter(reflectivity=0.5, model_choice='linear')
 bs.position = (-200,+20)
 
 switch = electro_optics.switch_2x2(extinction_ratio = float('inf'), loss_dB = 1.0)

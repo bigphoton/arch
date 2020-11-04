@@ -16,17 +16,19 @@ print ("Hello world")
 
 from time import sleep
 
-spd1=single_photon_detector.basic_spd(efficiency=0.7)
+detection_model='linear'
+
+spd1=single_photon_detector.basic_spd(efficiency=0.7 , model_choice=detection_model)
 spd1.position= (+200,+100)
 
-spd2=single_photon_detector.basic_spd(efficiency=0.7)
+spd2=single_photon_detector.basic_spd(efficiency=0.7, model_choice=detection_model)
 spd2.position= (+200,-100)
 
 
-bs0 = optics.beamsplitter(reflectivity=0.5)
+bs0 = optics.beamsplitter(reflectivity=0.5, model_choice='linear')
 bs0.position = (-200,+20)
 
-bs1 = optics.beamsplitter()
+bs1 = optics.beamsplitter(model_choice='linear')
 bs1.position = (+200,+20)
 
 bs0.ports['OUT0'].connect(bs1.ports['IN0'])

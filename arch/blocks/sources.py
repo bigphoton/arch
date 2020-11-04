@@ -31,14 +31,14 @@ class black_box_pair_photon_source(base_block):
 
 		#add single optical input
 		name="IN"
-		self.ports.add(port(name,"digital", True, self, 1 ,(x0,h/2+y0),0))
+		self.ports.add(port(name,"digital", True, self, None, 1 ,(x0,h/2+y0),0))
 		self.in_port_order.append(name)
 
 		# ...and two outputs
 		n_out = 2
 		for n in range(n_out):
 			name = "OUT"+str(n)
-			self.ports.add(port(name, "optical", False, self, 1, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
+			self.ports.add(port(name, "optical", False, self, 1, None, (+w/2+x0+l,-h/2+(n+1/2)*h/n_out+y0), 180))
 			self.out_port_order.append(name)
 
 
@@ -75,11 +75,11 @@ class black_box_single_photon_source(base_block):
 
 		#add single optical input
 		name="IN"
-		self.ports.add(port(name,"digital", True, self, 1 ,(x0,h/2+y0),0))
+		self.ports.add(port(name,"digital", True, self,None, 1 ,(x0,h/2+y0),0))
 		self.in_port_order.append(name)
 
 		name="OUT"
-		self.ports.add(port(name, "optical", False, self, 1, (+w/2+x0+l,-h/2+(1/2)*h/1+y0), 180))
+		self.ports.add(port(name, "optical", False, self, None, 1, (+w/2+x0+l,-h/2+(1/2)*h/1+y0), 180))
 		self.out_port_order.append(name)
 
 

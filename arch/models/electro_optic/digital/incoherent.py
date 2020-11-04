@@ -9,7 +9,39 @@ from arch.models import model
 from arch.simulations.monte_carlo import monte_carlo
 import copy
 
-class detector_basic(model):
+
+
+class basic_linear_detector(model):
+	"""
+	model for detecting the amplitude of classical input signals
+	"""
+
+	def __init__(self, efficiency, model_params):
+		super(type(self), self).__init__()
+		
+		self.model_params=model_params
+		self.efficiency=efficiency
+
+	def update_params(self,new_params):
+		self.model_params=new_params
+
+
+
+	def compute(self,input_vector):
+		
+		#Get values from input ports
+		input_data = [e.value for e in input_vector]
+
+		#Get detector efficiency:
+		efficiency=self.efficiency
+
+
+   
+		return input_data
+
+
+
+class monte_carlo_single_photon_detector(model):
 	"""
 	Model for digital single mode optical input, single digital ouput, with given efficiency.
 	This model is compatible with monte carlo simulations.
