@@ -4,7 +4,11 @@ Example optics with detectors
 THIS MODEL OF DETECTION DOES NOT PRESERVE PHOTON NUMBER, JUST A PLACEHOLDER
 """
 
+<<<<<<< HEAD
 
+=======
+# Add the parent folder (outside of `examples`) to the path, so we can find the `arch` module
+>>>>>>> 69183e0dfb2fec94bdf268958f130a5042d7b074
 import sys, os
 sys.path.append(os.path.dirname(sys.path[0]))
 
