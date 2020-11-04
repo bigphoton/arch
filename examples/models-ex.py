@@ -1,8 +1,8 @@
 """
-Example using on click sources and the architecture class to manage global state evolution.
+Example using on click sources and the architecture class to simulate a HOM dip via full state evolution, or through 
+monte - carlo sim
 """
 
-# Add the parent folder (outside of `examples`) to the path, so we can find the `arch` module
 import sys, os
 sys.path.append(os.path.dirname(sys.path[0]))
 
@@ -17,7 +17,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from time import sleep
 
-
+#This can be either "full_quantum" or "monte_carlo"
 model='full_quantum'
 
 #Block declarations

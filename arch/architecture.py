@@ -2,19 +2,24 @@
 
 import networkx as nx
 import matplotlib.pyplot as plt
-
+import itertools
 
 
 class architecture(object):
 	"""
 	Top-level class containing architectural elements.
 	
+	Global model - declare either 'linear', 'monte_carlo', 'full_quantum'
+
 	blocks: list of blocks to initialise with
+
+	
 	"""
 	
-	def __init__(self, blocks=[]):
+	def __init__(self, global_model, blocks=[]):
 		
 		self.blocks = blocks
+		self.global_model=global_model
 	
 	
 	@property
@@ -92,8 +97,8 @@ class architecture(object):
 		edge_style = 'arc3,rad=+0.1'
 		node_line_colour = "white"
 		text_font = 'sans-serif'
-        
-        # Draw graph elements
+		
+		# Draw graph elements
 		nx.draw_networkx_nodes(G, graph_pos, node_size=node_size, 
 								alpha=1, node_color=node_color, linewidths=1, 
 								edgecolors=node_line_colour)
@@ -115,12 +120,77 @@ class architecture(object):
 		plt.axis("off")
 		plt.show()
 	
+
+	#Create a dictionary where keys are the vectors and values are the coefficients
+	def create_input_state(self, max_mode_occupation):
+		input_state={}
+		no_modes=0
+		
+		for b in self.blocks:
+			if b.reference_prefix=='PPS':
+				b.ports['IN'].value['modes']=[no_modes,no_modes+1]
+				no_modes+=2
+	
+			elif b.reference_prefix=='SPS':
+				b.ports['IN'].value['modes']=[no_modes]
+				no_modes+=1
+			else:
+				continue
+
+		states=itertools.product([i for i in range(max_mode_occupation+1)], repeat=int(no_modes))
+		state_list=[tuple(p) for p in states]
+
+
+		vacuum=True
+		for state in state_list:
+			if vacuum:
+				input_state[state] = 1
+			else:
+				input_state[state] = 0
+
+			vacuum=False
+
+		return input_state
+
 	
 	def compute(self):
 		"""
 		Compute all blocks and place result on output ports.
 		"""
 		
-		# TODO: Work out the best order to compute blocks in
-		for b in self.blocks:
-			b.compute()
+		if self.global_model=='linear':
+
+			for b in self.blocks:
+				b.compute()
+
+
+		elif self.global_model=='monte_carlo':
+
+			for b in self.blocks:
+				b.compute()
+
+		
+
+		elif self.global_model=='full_quantum':
+		
+			state=self.create_input_state(max_mode_occupation=2)
+			print(' \n Initial Global state is:', state)
+
+			# TODO: Work out the best order to compute blocks in
+			for b in self.blocks:
+				
+				for p in b.ports:
+					if p.is_input:
+						p.value['Global_state']=state
+				
+
+			
+				b.compute()
+
+				for p in b.ports:
+					if p.is_output:
+						state=p.value['Global_state']
+				
+			
+
+				

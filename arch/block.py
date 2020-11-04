@@ -185,6 +185,9 @@ class base_block:
 		"""
 		Method to propagate state from component input ports to output ports.
 		"""
+		#TODO: Have a more appropriate method top propogate through a state in the fully quantum case
+		# - deoesn't really make sense to have two output ports with distinct values 
+
 		# Compose the input vector based on the input port order
 		# TODO: Would be great if this happened automatically when the input ports were updated
 		vin = np.array([self.ports[name] for name in self.in_port_order])

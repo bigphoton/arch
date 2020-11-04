@@ -9,13 +9,19 @@ from arch.vis.generic import generic_box, generic_port
 from arch.port import port
 from arch.models.optical.classical.linear import linear_basic
 from arch.models.optical.quantum.permanents import permanent
+from arch.models.optical.quantum.permanents_quantum import permanent_quantum
 
 class beamsplitter(base_block):
+
+	"""Requires the user to pick a model of computation. Options are 'linear', 'monte_carlo', 'full_quantum'
+	Defaults to linear"""
 	
 	reference_prefix = "BS"
 	
-	def define(self, reflectivity=0.5):
+	def define(self, model_choice, reflectivity=0.5):
 		
+		self.model_choice=model_choice
+
 		# Setup ports
 		w = generic_box.box_width
 		h = generic_box.box_height
@@ -54,8 +60,15 @@ class beamsplitter(base_block):
 		self.model_params.update({'reflectivity':reflectivity})
 		
 		# Set model
-		self.model = permanent(model_matrix_func, self.model_params)
-		
+		if model_choice=='monte_carlo':
+			self.model = permanent(model_matrix_func, self.model_params,model_choice)
+		elif model_choice=='linear':
+			self.model= linear_basic(model_matrix_func, self.model_params)
+		elif model_choice=='full_quantum':
+			self.model= permanent_quantum(model_matrix_func, self.model_params, model_choice)
+		else:
+			raise Exception('This is not a valid model choice for a beamsplitter')
+
 		
 class phase_shift(base_block):
 	

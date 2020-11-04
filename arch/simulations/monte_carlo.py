@@ -39,7 +39,7 @@ class monte_carlo(simulations):
 
         #random choice can only take 1D arrays, so cant pass outcomes directly
         vout_index=np.random.choice(np.arange(start=0,stop=len(outcomes),dtype=int),p=probabilities)
-        vout=np.array(outcomes[vout_index])
+        vout=outcomes[vout_index]
         
     
-        return vout.flat
+        return vout
