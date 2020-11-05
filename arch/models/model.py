@@ -2,11 +2,14 @@
 Functions and objects describing optical components.
 """
 
-class model(object):
+import abc
+
+
+class model(abc.ABC):
 	"""
 	Model base class.
 	"""
-	
+	@abc.abstractmethod
 	def update_params(self, new_params):
 		"""
 		Update compact model (e.g. matrix) with new parameters, such that model.compute() gives
@@ -15,8 +18,8 @@ class model(object):
 		Subclasses must implement this method.
 		"""
 		pass
-	
-	
+
+	@abc.abstractmethod
 	def compute(self):
 		"""
 		Propagate input state to output state.

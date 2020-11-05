@@ -2,11 +2,14 @@
 Functions and objects describing methods of simulation such as monte-carlo.
 """
 
-class simulations(object):
+import abc
+
+
+class simulations(abc.ABC):
 	"""
 	Simulations base class.
 	"""
-	
+	@abc.abstractmethod
 	def update_params(self, new_params):
 		"""
 		Update compact model (e.g. matrix) with new parameters, such that model.compute() gives
@@ -15,8 +18,8 @@ class simulations(object):
 		Subclasses must implement this method.
 		"""
 		pass
-	
-	
+
+	@abc.abstractmethod
 	def simulate(self):
 		"""
 		Propagate input state to output state.
