@@ -191,6 +191,8 @@ class architecture(object):
 					if p.is_output:
 						state=p.value['Global_state']
 				
+				print(' \n \n state after block', b.reference_prefix, state )
+				
 			
 
 				

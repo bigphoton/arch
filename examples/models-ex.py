@@ -58,7 +58,7 @@ if model=='monte_carlo':
 		print("\n  Detection events are: Detector 1:",spd1.ports['OUT'].value, "  Detector 2:",spd2.ports['OUT'].value)
 else:
 	arch.compute()
-	print("\n  Detection events are: Detector 1:",spd1.ports['OUT'].value, "  Detector 2:",spd2.ports['OUT'].value)
+	print("\n  Detection events are: Detector 1:",spd1.ports['OUT'].value['detection_result'], "  Detector 2:",spd2.ports['OUT'].value['detection_result'])
 	
 
 arch.draw()
