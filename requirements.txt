@@ -1,5 +1,2 @@
 numpy
 thewalrus
-itertools
-math
-copy
