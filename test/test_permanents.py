@@ -1,10 +1,8 @@
+import __init__
 import unittest
 import importlib
 import os,sys
 import numpy as np
-# Add the parent folder (outside of `examples`) to the path, so we can find the `arch` module
-#sys.path.insert(0,)
-
 
 
 from arch.models.optical.quantum.permanents import permanent

@@ -1,9 +1,8 @@
+import __init__
 import unittest
 import importlib
-import os,sys
+import os, sys
 import numpy as np
-# Add the parent folder (outside of `examples`) to the path, so we can find the `arch` module
-sys.path.insert(0,"C:\\Users\\mr19164\\OneDrive - University of Bristol\\Documents\\PhD Project\\ArchCore\\arch\\")
 
 from arch.blocks.single_photon_detector import basic_spd
 
