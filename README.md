@@ -23,7 +23,10 @@ System architecture tools for big quantum photonics.
  
 If desired, graphics are currently implemented using the built-in `turtle` module and `tkinter`. Export to PostScript is
 possible, but export to other formats is currently not supported.
- 
+
+## external package installation
+The non built-in packages required for this project are found in requirements.txt and can
+are installed with usual command `pip install -r requirements.txt`
  
 ## open problems
 
