@@ -2,8 +2,81 @@
 Input and output ports.
 """
 
+
+
 import numpy as np
 from .vis.generic import generic_port
+
+from enum import Enum     # Req. Python >= 3.4
+
+
+class kind(Enum):
+	optical = 0
+	photonic = 0
+	digital = 1
+	temperature = 2
+	voltage = 3
+	current = 4
+	real = 10
+	complex = 11
+	integer = 12
+
+# Default symbol values for each kind of port. Put None for no default.
+# TODO: Would be nice to integrate this as a property of each kind as kind.default
+KIND_DEFAULTS = {
+		kind.optical:0.0,
+		kind.digital:0, 
+		kind.temperature:300.0, 
+		kind.voltage:0.0,
+		kind.current:0.0,
+		kind.real:0.0,
+		kind.complex:0.0,
+		kind.integer:0}
+
+class direction(Enum):
+    inp = 0
+    out = 1
+
+
+
+import sympy.core.symbol
+
+class var(sympy.core.symbol.Symbol):
+	"""
+	A version of sympy.Symbol with attached attributes.
+	
+	block: block to which this port was initially attached, Block
+	kind: kind of port, port.kind
+	direction: sense of port, port.direction
+	default: default value if not set, kind-specific
+	
+	data: dictionary of attached data, for use by models
+	"""
+	def __new__(self, local_name, real=True, block=None, 
+					kind=None, direction=None, default=None):
+		"""
+		We need to intercept __new__ rather than __init__ because Symbol uses it 
+			instead of __init__.
+		"""
+		if block is None:
+			my_name = local_name
+		else:
+			my_name = var.new_name(block.name, local_name)
+		obj = sympy.core.symbol.Symbol.__new__(self, my_name)
+		obj.local_name = local_name
+		obj.block = block
+		obj.kind = kind
+		obj.direction = direction
+		obj.default = default
+		obj.data = dict()
+		return obj
+	
+	@classmethod
+	def new_name(cls, block_name, local_name):
+		"""
+		The name is set based on the *last* block to which we are associated.
+		"""
+		return block_name + '.' + local_name
 
 class port:
 	"""
@@ -145,4 +218,3 @@ class port_set(set):
 	def __getitem__(self, key):
 		val = {e for e in self if e.name == key}.pop()
 		return val
-

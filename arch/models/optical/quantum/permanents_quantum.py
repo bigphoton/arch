@@ -1,7 +1,11 @@
 import numpy as np
 import itertools
 import copy
-import thewalrus
+try:
+	import thewalrus
+except:
+	print("Unable to import `thewalrus`. How about a backup permanent function?")
+import math
 import math
 from arch.models import model
 from arch.simulations.monte_carlo import monte_carlo
