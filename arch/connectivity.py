@@ -195,7 +195,12 @@ class Connectivity:
 			G = self.__block_graph
 			
 		G_port_nodes = [n for n in G.nodes() if type(n) == var]
-		G_block_nodes = [n for n in G.nodes() if isinstance(n,Block)]
+		
+		
+		
+		is_block = lambda obj : 'Block' in [t.__name__ for t in type(obj).__mro__]
+		
+		G_block_nodes = [n for n in G.nodes() if is_block(n)]
 		
 		
 		def rotate_pos(graph_pos, G):
@@ -249,7 +254,7 @@ class Connectivity:
 				return edge_colours[None]
 		
 		def node_colour(e):
-			if isinstance(e, Block):
+			if is_block(e):
 				return 'black'
 			try:
 				t = e.ports[0].kind
