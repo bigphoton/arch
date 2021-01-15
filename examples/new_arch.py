@@ -1,4 +1,8 @@
 
+# Add the parent folder (outside of `examples`) to the path, so we can find the `arch` module
+import sys, os
+sys.path.append(os.path.dirname(sys.path[0]))
+
 try:
     import colored_traceback.auto
 except ImportError:
