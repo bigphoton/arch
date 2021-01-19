@@ -83,7 +83,6 @@ class MachZehnder(Block):
 		self.add_model(
 			Linear.compound(
 				'compound '+self.name, 
-				block=self,
 				models=[bs0.model, ps.model, bs1.model], 
 				connectivity=con))
 
