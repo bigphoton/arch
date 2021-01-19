@@ -84,7 +84,7 @@ class Connectivity:
 		
 	
 	def __repr__(self):
-		return repr(self.__conns)
+		return "Connectivity("+repr(self.__conns)+")"
 	
 	
 	def filtered(self, predicate):
@@ -111,7 +111,7 @@ class Connectivity:
 		models: iterable of `Model` objects
 		"""
 		model_ports = [p for m in models for p in m.ports]
-		predicate = lambda i,o: i in model_ports or o in model_ports
+		predicate = lambda i,o: i in model_ports and o in model_ports
 		return self.filtered(predicate)
 	
 	

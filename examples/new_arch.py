@@ -57,7 +57,6 @@ if __name__ == '__main__':
 	"""
 	
 	
-	
 	print ("Welcome to the new arch")
 	
 	laser = LaserCW()
@@ -72,6 +71,27 @@ if __name__ == '__main__':
 # 	
 	bs = Beamsplitter()
 	
+	
+	
+# 	connections_basic = Connectivity( [
+# 					(laser.out, ps0.inp)
+# 					] )
+# 	
+# 	cm = laser.model.compound("compound name", [laser.model, ps0.model], connections_basic)
+# 	
+# 	print('\ncm is',cm)
+# 	print('out exprs',cm.out_exprs)
+# 	print('out func', cm.out_func)
+# 	print('ports',cm.ports)
+# 	print('in ports',cm.in_ports)
+# 	print('out ports',cm.out_ports)
+# 	print('default input state',cm.default_input_state)
+# 	print(cm.properties)
+# 	
+# 	quit()
+	
+	
+	print ("\nComplex example")
 	connections = Connectivity( [
 					(laser.out, mz0.in0),
 					(mz0.out0, ps0.inp),
@@ -81,15 +101,25 @@ if __name__ == '__main__':
 					(bs.out0, mz1.in0),
 					(bs.out1, mz1.in1),
 					] )
+					
+	cm = laser.model.compound("compound name", [laser.model, mz0.model, ps0.model, ps1.model, bs.model, mz1.model], connections)
 	
-	cm = laser.model.compound("compound name", [laser.model, mz0.model], connections)
 	
-	
-	print(cm)
+	print('\ncm is',cm)
 	
 	state = cm.default_input_state
-	cm.out_func(state)
-	print(state)
+	print("default input state",state)
+	state = cm.out_func(state)
+	print("default output state",state)
+	
+	
+	print('cm is',cm)
+	print('out exprs',cm.out_exprs)
+	print('out func', cm.out_func)
+	print('ports',cm.ports)
+	print('in ports',cm.in_ports)
+	print('out ports',cm.out_ports)
+	print(cm.properties)
 	
 	
 # 	from arch.block import AutoCompoundBlock

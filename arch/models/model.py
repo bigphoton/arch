@@ -87,33 +87,6 @@ class Model(abc.ABC):
 		pass
 	
 	
-	def out_func(self, in_port_values, mode='fast'):
-		"""
-		Function to compute output port values given input port values. It should return a
-		dict keyed by the output ports. This method is used by top-level models to
-		compute their outputs. It is also the fall-back method for performing
-		un-compilable local model calculations. A basic implementation for models which 
-		declare `out_exprs` is here. Non-symbolic models should override this.
-		
-		in_port_values: dict keyed by ports
-		"""
-		
-		assert type(in_port_values) is dict
-		
-		if hasattr(self, 'out_exprs'):
-			subs = {port:port.default for port in self.ports}
-			subs.update(in_port_values)
-			
-			opoes = self.out_exprs.items()
-			
-			if mode == 'fast':
-				return {op:sympy.N(oe.subs(subs)) for op,oe in opoes}
-			elif mode == 'precise':
-				return {op:oe.evalf(subs=subs) for op,oe in opoes}
-		
-		raise NotImplementedError("Method out_func is not implemented for model of type {:}.".format(type(self)))
-	
-	
 	@property
 	def port_names(self):
 		return {str(e) for e in self.ports}
@@ -168,7 +141,6 @@ class NumericModel(Model):
 			return all([p in state for p in model.in_ports])
 		
 		def out_func(state):
-			inp_ports = set(state.keys())
 			mods = set(models)
 			while mods:
 				ready_mods = {mod for mod in mods if _have_prereqs(mod, state)}
@@ -186,57 +158,76 @@ class SymbolicModel(Model):
 	General symbolic model.
 	"""
 	
-	def define(self, **kwargs):
+	def define(self, out_exprs=dict(), **kwargs):
 		super().define(**kwargs)
 		
 		self.properties.add("symbolic")
-		self.out_exprs = dict()
+		self.out_exprs = out_exprs
+	
+	
+	def out_func(self, in_state, mode='fast'):
+		"""
+		Function to compute output port values given input port values. It should return a
+		dict keyed by the output ports.
+		
+		state: dict keyed by ports with target port values as dict values {port0:val0,...}
+		"""
+		
+		assert type(in_state) is dict
+		
+		if hasattr(self, 'out_exprs'):
+			subs = self.default_input_state | in_state
+			
+			opoes = self.out_exprs.items()
+			
+			if mode == 'fast':
+				return {op:sympy.N(oe.subs(subs)) for op,oe in opoes}
+				
+			elif mode == 'precise':
+				return {op:oe.evalf(subs=subs) for op,oe in opoes}
+		
+		raise NotImplementedError("Method out_func is not implemented for model of type {:}.".format(type(self)))
 	
 	
 	@classmethod
 	def compound(cls, name, models=[], connectivity=Connectivity()):
-		print("Compounding in SymbolicModel")
-		# FIXME: This takes the first model from each block, 
-		#  whereas we want to take the right one
-		all_models = models
 		
-		all_opoes = {op:oe for model in all_models for op,oe in model.out_exprs.items()}
-		print('all_opoes',all_opoes)
+		# Filter the connectivity to only cover these models
+		connectivity = connectivity.filtered_by_models(models)
 		
-		# Make all the possible substitutions on the output ports, 
-		#  store the result in out_exprs
-		all_subs=[]
-		for op,oe in all_opoes.items():
-			all_subs.append((op, oe))
-		for oe,op in connectivity:
-			all_subs.append((op, oe))
+		# Get ports from models
+		ports = [p for m in models for p in m.ports]
 		
-		internal_symbols = [op for oe,op in connectivity]
-		print("internal symbols",internal_symbols)
+		# Filter external ports
+		ex_ports = [p for p in ports if p not in connectivity]
+		ex_out_ports = [p for p in ex_ports if p.direction == port.direction.out]
+		ex_in_ports = [p for p in ex_ports if p.direction == port.direction.inp]
 		
-		in_ports = {p for p in all_opoes if p.direction == port.direction.inp}
-		out_ports = {p for p in all_opoes if p.direction == port.direction.out}
-		out_exprs = dict()
-		for op in out_ports:
-			oe = op
-			
-			# TODO: Make this smarter. It will definitely be correct now, 
-			#  but needn't run so many times in general
-			for _ in range(3*len(all_subs)):
-				oe = oe.subs(all_subs, simultaneous=True)
-			
-			oe = oe.simplify()
-			
-			out_exprs[op] = oe
-			
+		
+		def _have_prereqs(model, state):
+			"""Does `state` contain all the prerequisite inputs for `model`"""
+			return all([p in state for p in model.in_ports])
+		
+		# Substitute
+		state = {p:p for p in ex_in_ports}
+		
+		mods = set(models)
+		while mods:
+			ready_mods = {mod for mod in mods if _have_prereqs(mod, state)}
+			for mod in ready_mods:
+				state |= {op:oe.subs(state) for op,oe in mod.out_exprs.items()}
+				state |= {pi:state[po] for po,pi in connectivity if po in state}
+			mods -= ready_mods
+		
 		# Check
-		extra_symbols = {s for oe in out_exprs.values() 
-							for s in oe.free_symbols if s not in in_ports}
+		extra_symbols = {s for oe in state.values() 
+							for s in oe.free_symbols if s in ex_out_ports}
 		if extra_symbols:
-			# FIXME: This is from an old version where this was an instance method (with self)
 			raise AttributeError("Extra symbols found after substitution: {:}. Either "
 				"relabel as compound input port, or adjust internal connectivity "
 				"accordingly.".format(extra_symbols))
+		
+		return SymbolicModel(name=name, ports=ex_ports, out_exprs=state)
 
 
 
