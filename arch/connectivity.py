@@ -150,6 +150,21 @@ class Connectivity:
 		return set(self.__block_graph)
 	
 	
+	@property
+	def block_graph(self):
+		return self.__block_graph
+	
+	
+	@property
+	def port_graph(self):
+		return self.__port_graph
+	
+	
+	@property
+	def model_graph(self):
+		return self.__model_graph
+	
+	
 	def all_blocks_ordered(self):
 		"""
 		Return list of blocks in causal order.
