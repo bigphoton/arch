@@ -38,6 +38,15 @@ class Model(abc.ABC):
 	
 	@classmethod
 	def compound(cls, name, models, connectivity):
+		"""
+		Method to be implemented by subclasses. Subclasses should call the `compound` method
+		of `super` if they are unable to compound the input models (see snippet below).
+		
+		try:
+			<Subclass compounding code here>
+		except NotImplementedError:
+			return super().compound(name=name, models=models, connectivity=connectivity)
+		"""
 		
 		print ("Compounding in Model")
 		return NumericModel.compound(name, models, connectivity)
@@ -279,34 +288,49 @@ class Linear(SymbolicModel):
 					"model matrix {:}. Add ports before adding model.".format(
 						len(self.out_optical_ports), self.n_outs))
 		
+		# TODO: Should override `out_func` to use matrix multiplication for the optical ports
 		self.out_exprs = {op:oe for op,oe in 
 				zip(self.out_optical_ports, self.U * Matrix(self.in_optical_ports) ) }
 	
 	
 	@classmethod
-	def compound(cls, name, block, models, connectivity):
+	def compound(cls, name, models, connectivity):
 		
 		try:
-			con = connectivity
 		
 			if all([isinstance(m,Linear) for m in models]):
 		
-				if con.has_loops:
+				if connectivity.has_loops:
 					raise NotImplementedError("Unable to hybridise models of type '{:}' "
 											"containing loops".format(cls))
 			
 				# Put models in causal order
-				models = con.order_models(models)
+				models = connectivity.order_models(models)
+				
+				
+				# Filter the connectivity to only cover these models
+				connectivity = connectivity.filtered_by_models(models)
+		
+				# Get ports from models
+				ports = [p for m in models for p in m.ports]
+		
+				# Filter external ports
+				ex_ports = [p for p in ports if p not in connectivity]
+				ex_out_ports = [p for p in ex_ports if p.direction == port.direction.out]
+				ex_in_ports = [p for p in ex_ports if p.direction == port.direction.inp]
 			
 				# Map modes
 				# TODO: This routine is very expensive, possible to optimise?
 				modes = dict()
 				np = 0
 			
-				# Pre-populate modes with block port order
-				# TODO: Check input (block) port order is respected
-				iops = [p for p in block.in_ports if p.kind == port.kind.optical]
-				oops = [p for p in block.out_ports if p.kind == port.kind.optical]
+				# Pre-populate modes with port order
+				iops = [p for p in ex_in_ports if p.kind == port.kind.optical]
+				oops = [p for p in ex_out_ports if p.kind == port.kind.optical]
+				
+				assert len(iops) == len(oops), ("Numbers of input and output optical ports does "
+												"not match")
+				
 				for ip,op in zip(iops, oops):
 					modes[np] = {ip, op}
 					np += 1
@@ -316,7 +340,7 @@ class Linear(SymbolicModel):
 					for ip,op in zip(model.in_optical_ports, model.out_optical_ports):
 						matched = False
 						for mode,mode_ports in modes.items():
-							if (ip in mode_ports) or any([con.test(xp,mp) 
+							if (ip in mode_ports) or any([connectivity.test(xp,mp) 
 									for mp in mode_ports for xp in [ip,op]]):
 								# If ports connect to ports of any known mode,
 								#  associate them with this mode
@@ -362,16 +386,14 @@ class Linear(SymbolicModel):
 			
 	# 			print("U:")
 	# 			sympy.pprint(U)
-	# 			print("ports:")
-	# 			print(block.ports)
 			
-				return Linear(name=name, block=block, unitary_matrix=U)
+				return Linear(name=name, ports=ex_ports, unitary_matrix=U)
 		
 			raise NotImplementedError("Linear unable to compound input models {:}".format(
 						[m for m in models]))
 		
 		except NotImplementedError:
-			return super().compound(name=name, block=block, models=models, connectivity=connectivity)
+			return super().compound(name=name, models=models, connectivity=connectivity)
 
 
 class LinearGroupDelay(Linear):
@@ -395,9 +417,9 @@ class LinearGroupDelay(Linear):
 	
 	
 	@classmethod
-	def compound(cls, name, block, models, connectivity):
+	def compound(cls, name, models, connectivity):
 		
-		new_mod = Linear.compound(name, block=block,
+		new_mod = Linear.compound(name,
 				models=models, connectivity=connectivity)
 	
 
