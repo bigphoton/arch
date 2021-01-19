@@ -142,6 +142,14 @@ class Connectivity:
 		return ret
 	
 	
+	@property
+	def blocks(self):
+		"""
+		Return set of all described blocks.
+		"""
+		return set(self.__block_graph)
+	
+	
 	def all_blocks_ordered(self):
 		"""
 		Return list of blocks in causal order.
