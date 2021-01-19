@@ -57,12 +57,15 @@ class Connectivity:
 			for c in new_cons:
 				self.__block_graph.add_edge(c[0].block, c[1].block, ports=c)
 				
-				self.__port_graph.add_edge(c[0].block, c[0],
-									ports=(c[0],), weight=0.3)
+				for b in [c[0].block, c[1].block]:
+					for p in b.ports:
+						if p.direction == port.direction.inp:
+							self.__port_graph.add_edge(p, b, ports=(p), weight=0.3)
+						else:
+							self.__port_graph.add_edge(b, p, ports=(p), weight=0.3)
+				
 				self.__port_graph.add_edge(c[0], c[1], 
 									ports=c, weight=0.6)
-				self.__port_graph.add_edge(c[1], c[1].block, 
-									ports=(c[1],), weight=0.3)
 				
 				try:
 					for m0 in c[0].block.models:
@@ -113,6 +116,21 @@ class Connectivity:
 		model_ports = [p for m in models for p in m.ports]
 		predicate = lambda i,o: i in model_ports and o in model_ports
 		return self.filtered(predicate)
+	
+	
+	@property
+	def external_ports(self):
+		return {p for b in self.blocks for p in b.ports if p not in self}
+	
+	
+	@property
+	def external_in_ports(self):
+		return {p for p in self.external_ports if p.direction == port.direction.inp}
+	
+	
+	@property
+	def external_out_ports(self):
+		return {p for p in self.external_ports if p.direction == port.direction.out}
 	
 	
 	def test(self, port0, port1=None):
