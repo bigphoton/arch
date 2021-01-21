@@ -300,8 +300,8 @@ if __name__ == '__main__':
 	
 	from matplotlib import pyplot
 	
-	pyplot.plot([s[0] for s in states_ts], [abs(s[1][ps0.inp]) for s in states_ts])
-	pyplot.plot([s[0] for s in states_ts], [abs(s[1][mz1.out0]) for s in states_ts])
+# 	pyplot.plot([s[0] for s in states_ts], [abs(s[1][ps0.inp]) for s in states_ts])
+# 	pyplot.plot([s[0] for s in states_ts], [abs(s[1][mz1.out0]) for s in states_ts])
 	pyplot.show()
 	
 	quit()

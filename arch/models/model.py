@@ -178,35 +178,47 @@ class SymbolicModel(Model):
 	General symbolic model.
 	"""
 	
-	def define(self, out_exprs=dict(), **kwargs):
+	def define(self, out_exprs=None, **kwargs):
 		super().define(**kwargs)
 		
 		self.properties.add("symbolic")
-		self.out_exprs = out_exprs
+		if out_exprs is not None:
+			self.out_exprs = out_exprs
 	
 	
-	def out_func(self, in_state, mode='fast'):
+	@property
+	def out_exprs(self):
+		return self.__out_exprs
+	
+	@out_exprs.setter
+	def out_exprs(self, new_out_exprs):
+	
+		self.__out_exprs = new_out_exprs
+		
+		# Refresh out_funcs
+		try:
+			self._out_func_lambda = sympy.lambdify(self.in_ports,
+										[self.out_exprs[p] for p in self.out_ports])
+		except KeyError as e:
+			raise KeyError(f"Output port '{e}' not described by `out_exprs` {self.out_exprs}")
+	
+	
+	def out_func(self, in_state):
 		"""
-		Function to compute output port values given input port values. It should return a
-		dict keyed by the output ports.
+		Compute output state from input state.
 		
-		state: dict keyed by ports with target port values as dict values {port0:val0,...}
+		in_state: dictionary of port values keyed by port
+		return: dictionary of port values (including outputs) keyed by port
 		"""
 		
-		assert type(in_state) is dict
+		# Since our lambda func (and sympy.lambdify) deals in arg *vectors*, derive them from the
+		#  input dict, and derive the output dict from them.
+		in_state_vec = [in_state[p] for p in self.in_ports]
+		out_state_vec = self._out_func_lambda(*in_state_vec)
+		out_state_dict = {self.out_ports[i]:out_state_vec[i] for i in range(len(out_state_vec))}
 		
-		if hasattr(self, 'out_exprs'):
-			subs = self.default_input_state | in_state
-			
-			opoes = self.out_exprs.items()
-			
-			if mode == 'fast':
-				return {op:sympy.N(oe.subs(subs)) for op,oe in opoes}
-				
-			elif mode == 'precise':
-				return {op:oe.evalf(subs=subs) for op,oe in opoes}
+		return out_state_dict
 		
-		raise NotImplementedError("Method out_func is not implemented for model of type {:}.".format(type(self)))
 	
 	
 	@classmethod
@@ -449,21 +461,14 @@ class LinearGroupDelay(Linear):
 class SourceModel(SymbolicModel):
 	"""
 	Model for sources.
-	
-	out_exprs: output expressions keyed by output port, dict
 	"""
 	
-	def define(self, out_exprs, **kwargs):
+	def define(self, **kwargs):
 		super().define(**kwargs)
-		
-		assert isinstance(out_exprs, dict)
 		
 		self.properties.add("source")
 		
 		self.out_optical_ports = [p for p in self.out_ports if p.kind == port.kind.optical]
-		
-		for p in self.out_optical_ports:
-			self.out_exprs[p] = out_exprs[p]
 
 
 
