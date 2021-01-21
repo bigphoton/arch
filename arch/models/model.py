@@ -215,7 +215,7 @@ class SymbolicModel(Model):
 		#  input dict, and derive the output dict from them.
 		in_state_vec = [in_state[p] for p in self.in_ports]
 		out_state_vec = self._out_func_lambda(*in_state_vec)
-		out_state_dict = {self.out_ports[i]:out_state_vec[i] for i in range(len(out_state_vec))}
+		out_state_dict = in_state | {self.out_ports[i]:out_state_vec[i] for i in range(len(out_state_vec))}
 		
 		return out_state_dict
 		

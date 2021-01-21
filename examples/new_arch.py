@@ -239,7 +239,7 @@ if __name__ == '__main__':
 	from math import pi
 	
 	in_time_funcs = {
-				laser.out: step(0,1,50), 
+				laser.P: step(0,1.1,50), 
 				mz0.phi: constant(pi/2), 
 				mz1.phi: constant(pi/2),
 				ps0.phi: ramp(0, pi, 50, 0),
@@ -259,8 +259,7 @@ if __name__ == '__main__':
 	t_close_copy = 0
 	
 	t_start = time.time()
-	for t in range(20):
-		print("Calculating t =",t)
+	for t in range(200):
 		
 		for op in cm.out_ports:
 			
@@ -300,8 +299,10 @@ if __name__ == '__main__':
 	
 	from matplotlib import pyplot
 	
-# 	pyplot.plot([s[0] for s in states_ts], [abs(s[1][ps0.inp]) for s in states_ts])
-# 	pyplot.plot([s[0] for s in states_ts], [abs(s[1][mz1.out0]) for s in states_ts])
+	pyplot.plot([s[0] for s in states_ts], [s[1][laser.P] for s in states_ts])
+	pyplot.plot([s[0] for s in states_ts], [s[1][ps0.phi] for s in states_ts])
+	pyplot.plot([s[0] for s in states_ts], [abs(s[1][mz1.out0]) for s in states_ts])
+	pyplot.plot([s[0] for s in states_ts], [abs(s[1][mz1.out1]) for s in states_ts])
 	pyplot.show()
 	
 	quit()
