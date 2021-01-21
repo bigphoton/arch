@@ -105,6 +105,10 @@ class Model(abc.ABC):
 		"""Dictionary of default values keyed by input port"""
 		
 		return {p:p.default for p in self.in_ports}
+	
+	
+	def __repr__(self):
+		return "<"+self.__class__.__module__+"."+self.__class__.__name__+" '"+self.name+"'>"
 
 
 class NumericModel(Model):
@@ -119,8 +123,8 @@ class NumericModel(Model):
 		
 		self.properties.add("numeric")
 		
-		default_ins = self.default_input_state
-		described_out_ports = set(out_func(default_ins).keys())
+		out = out_func(self.default_input_state).keys()
+		described_out_ports = set(out_func(self.default_input_state).keys())
 		
 		if not set(self.out_ports).issubset(described_out_ports):
 			print(self.out_ports)
@@ -135,6 +139,7 @@ class NumericModel(Model):
 	
 	@classmethod
 	def compound(cls, name, models=[], connectivity=Connectivity()):
+		print("Compounding in NumericalModel")
 		
 		# Filter the connectivity to only cover these models
 		connectivity = connectivity.filtered_by_models(models)
@@ -151,12 +156,18 @@ class NumericModel(Model):
 		
 		def out_func(state):
 			mods = set(models)
+			# Initialise ports within loops
+			loops = connectivity.loops
+			state = {e:e.default for l in loops for e in l if isinstance(e, port.var)} | state
+			
+			# Substitute ready model values until all models are substituted
 			while mods:
 				ready_mods = {mod for mod in mods if _have_prereqs(mod, state)}
 				for mod in ready_mods:
 					state |= mod.out_func(state)
 					state |= {pi:state[po] for po,pi in connectivity if po in state}
 				mods -= ready_mods
+			
 			return state
 		
 		return NumericModel(name=name, ports=ex_ports, out_func=out_func)
@@ -199,44 +210,56 @@ class SymbolicModel(Model):
 	
 	
 	@classmethod
-	def compound(cls, name, models=[], connectivity=Connectivity()):
+	def compound(cls, name, models=[], connectivity=Connectivity(), iter_max=10):
 		
-		# Filter the connectivity to only cover these models
-		connectivity = connectivity.filtered_by_models(models)
+		try:
+			# Filter the connectivity to only cover these models
+			connectivity = connectivity.filtered_by_models(models)
 		
-		# Get ports from models
-		ports = [p for m in models for p in m.ports]
+			# Get ports from models
+			ports = [p for m in models for p in m.ports]
 		
-		# Filter external ports
-		ex_ports = [p for p in ports if p not in connectivity]
-		ex_out_ports = [p for p in ex_ports if p.direction == port.direction.out]
-		ex_in_ports = [p for p in ex_ports if p.direction == port.direction.inp]
+			# Filter external ports
+			ex_ports = [p for p in ports if p not in connectivity]
+			ex_out_ports = [p for p in ex_ports if p.direction == port.direction.out]
+			ex_in_ports = [p for p in ex_ports if p.direction == port.direction.inp]
 		
 		
-		def _have_prereqs(model, state):
-			"""Does `state` contain all the prerequisite inputs for `model`"""
-			return all([p in state for p in model.in_ports])
+			def _have_prereqs(model, state):
+				"""Does `state` contain all the prerequisite inputs for `model`"""
+				return all([p in state for p in model.in_ports])
 		
-		# Substitute
-		state = {p:p for p in ex_in_ports}
+			# Substitute
+			state = {p:p for p in ex_in_ports}
 		
-		mods = set(models)
-		while mods:
-			ready_mods = {mod for mod in mods if _have_prereqs(mod, state)}
-			for mod in ready_mods:
-				state |= {op:oe.subs(state) for op,oe in mod.out_exprs.items()}
-				state |= {pi:state[po] for po,pi in connectivity if po in state}
-			mods -= ready_mods
+			mods = set(models)
+			i = 0
+			while mods and i < iter_max:
+				i += 1
+				ready_mods = {mod for mod in mods if _have_prereqs(mod, state)}
+				for mod in ready_mods:
+					state |= {op:oe.subs(state) for op,oe in mod.out_exprs.items()}
+					state |= {pi:state[po] for po,pi in connectivity if po in state}
+				mods -= ready_mods
 		
-		# Check
-		extra_symbols = {s for oe in state.values() 
-							for s in oe.free_symbols if s in ex_out_ports}
-		if extra_symbols:
-			raise AttributeError("Extra symbols found after substitution: {:}. Either "
-				"relabel as compound input port, or adjust internal connectivity "
-				"accordingly.".format(extra_symbols))
+			# Check
+			if i == iter_max:
+				ls = connectivity.loops
+				print("Found loops:",list(ls))
+				raise NotImplementedError(
+							f"Reached max iteration limit ({iter_max}) but all models do not "
+							f"yet have their prerequisite inputs. Remaining models are {mods}")
+			extra_symbols = {s for oe in state.values() 
+								for s in oe.free_symbols if s in ex_out_ports}
+			if extra_symbols:
+				raise AttributeError("Extra symbols found after substitution: {:}. Either "
+					"relabel as compound input port, or adjust internal connectivity "
+					"accordingly.".format(extra_symbols))
 		
-		return SymbolicModel(name=name, ports=ex_ports, out_exprs=state)
+			return SymbolicModel(name=name, ports=ex_ports, out_exprs=state)
+			
+		except NotImplementedError:
+			return super().compound(name=name, models=models, connectivity=connectivity)
 
 
 
