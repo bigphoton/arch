@@ -130,6 +130,7 @@ class Connectivity:
 	
 	@property
 	def external_out_ports(self):
+		print("Getting external out ports")
 		return {p for p in self.external_ports if p.direction == port.direction.out}
 	
 	
@@ -158,6 +159,11 @@ class Connectivity:
 		"""
 		ret = not nx.algorithms.dag.is_directed_acyclic_graph(self.__block_graph)
 		return ret
+	
+	
+	@property
+	def loops(self):
+		return nx.algorithms.cycles.simple_cycles(self.__port_graph)
 	
 	
 	@property
