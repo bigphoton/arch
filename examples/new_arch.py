@@ -65,6 +65,7 @@ if __name__ == '__main__':
 	ps0 = PhaseShifter()
 	ps1 = PhaseShifter()
 	bs = Beamsplitter()
+	bs1 = Beamsplitter()
 	
 	laser.delay = 1
 	mz0.delay = 1
@@ -74,16 +75,16 @@ if __name__ == '__main__':
 	bs.delay = 1
 	
 	
-	config = 1
+	config = 'unbalanced delay'
 	
-	if config == 0:
+	if config == 'simple':
 		connections = Connectivity( [
 						(ps0.out, ps1.inp)
 						] )
 	
-		cm = ps0.model.compound("compound name", [ps0.model, ps1.model], connections)
 	
-	elif config == 1:
+	elif config == 'complex':
+	
 		connections = Connectivity( [
 						(laser.out, mz0.in0),
 						(mz0.out0, ps0.inp),
@@ -93,10 +94,8 @@ if __name__ == '__main__':
 						(bs.out0, mz1.in0),
 						(bs.out1, mz1.in1),
 						] )
-					
-		cm = laser.model.compound("compound name", [laser.model, mz0.model, ps0.model, ps1.model, bs.model, mz1.model], connections)
 		
-	elif config == 2:
+	elif config == 'loops':
 		
 	
 		connections = Connectivity( [
@@ -104,10 +103,20 @@ if __name__ == '__main__':
 						(ps0.out, bs.in1),
 						] )
 		
-		cm = bs.model.compound("compound name", [ps0.model, bs.model], connections)
+	elif config == 'unbalanced delay':
+		
+	
+		connections = Connectivity( [
+						(bs.out0, ps0.inp),
+						(ps0.out, bs1.in0),
+						(bs.out1, bs1.in1),
+						] )
 		
 	else:
 		raise RuntimeError("Bad config")
+		
+	
+	cm = bs.model.compound("compound name", connections.models, connections)
 	
 	
 	print('\ncm is',cm)
@@ -141,9 +150,9 @@ if __name__ == '__main__':
 		
 	print(f"Took {eval_time} s")
 	
+# 	oe = cm.out_exprs[mz1.out0]
 # 	import IPython
 # 	IPython.embed()
-# 	
 # 	quit()
 	
 		
@@ -203,12 +212,26 @@ if __name__ == '__main__':
 	
 	
 	
+	"""
+	NOTE TO SELF:
 	
+	Need a simulator that simulates each internal variable at each time step.
+	Simulator might gobble up subgraphs with synchronised time:
+		1. examine when delay paths diverge
+		2. chop back subgraph until that point
+		3. compound
+		4. repeat
+	Compile all outputs as a function of all inputs
+	Each frame:
+		1. Compute all internal and external port values
+		2. Handle delays
+	"""
+	
+	
+	connections.draw(draw_ports=True)
 	
 	dm = get_delay_map(connections)
 	print(dm)
-# 	connections.draw(draw_ports=True)
-	
 	print(cm)
 	
 	print(cm.in_ports)
@@ -287,8 +310,6 @@ if __name__ == '__main__':
 	
 	t_total = time.time() - t_start
 	
-	for s in states_ts:
-		print (s)
 		
 	
 	print("Spent time:")
