@@ -33,6 +33,17 @@ KIND_DEFAULTS = {
 		kind.complex:0.0,
 		kind.integer:0}
 
+KIND_ASSUMPTIONS = {
+		kind.optical:{'complex':True},
+		kind.digital:{'integer':True, 'nonnegative':True}, 
+		kind.temperature:{'positive':True}, 
+		kind.voltage:{'real':True},
+		kind.current:{'real':True},
+		kind.real:{'real':True},
+		kind.complex:{'complex':True},
+		kind.integer:{'integer':True}
+		}
+
 class direction(Enum):
     inp = 0
     out = 1
@@ -52,7 +63,7 @@ class var(sympy.core.symbol.Symbol):
 	
 	data: dictionary of attached data, for use by models
 	"""
-	def __new__(self, local_name, real=True, block=None, 
+	def __new__(self, local_name, block=None, 
 					kind=None, direction=None, default=None):
 		"""
 		We need to intercept __new__ rather than __init__ because Symbol uses it 
@@ -62,7 +73,7 @@ class var(sympy.core.symbol.Symbol):
 			my_name = local_name
 		else:
 			my_name = var.new_name(block.name, local_name)
-		obj = sympy.core.symbol.Symbol.__new__(self, my_name)
+		obj = sympy.core.symbol.Symbol.__new__(self, my_name, **KIND_ASSUMPTIONS[kind])
 		obj.local_name = local_name
 		obj.block = block
 		obj.kind = kind

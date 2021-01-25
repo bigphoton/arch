@@ -185,6 +185,11 @@ class Connectivity:
 	
 	
 	@property
+	def models(self):
+		return {b.model for b in self.blocks}
+	
+	
+	@property
 	def model_graph(self):
 		return self.__model_graph
 	
