@@ -1,3 +1,0 @@
-"""
-For building multiplexed sources.
-"""

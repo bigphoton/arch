@@ -14,7 +14,8 @@ from arch.port import var
 from arch.block import Block
 from arch.connectivity import Connectivity
 from arch.models import Model, SymbolicModel, NumericModel, SourceModel
-from arch.blocks.optics import Beamsplitter, PhaseShifter, MachZehnder, LaserCW
+from arch.blocks.optics import Beamsplitter, PhaseShifter, MachZehnder
+from arch.blocks.sources import LaserCW
 from arch.architecture import Architecture
 
 

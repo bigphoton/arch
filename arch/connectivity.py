@@ -1,16 +1,11 @@
+"""
+Facilities for describing and manipulating the connectivity
+between blocks, ports, and models.
+"""
 
-
-from .vis.generic import generic_box
-from .vis.graphic import v2
-from .port import port_set
-import numpy as np
-
-import abc
 
 import arch.port as port
-
-
-from .port import var
+from arch.port import var
 import networkx as nx
 import matplotlib.pyplot as plt
 
