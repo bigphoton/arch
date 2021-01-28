@@ -312,6 +312,8 @@ class Connectivity:
 				except:
 					return edge_colours[None]
 		
+		fig, ax = plt.subplots()
+		
 		# Drawing properties
 		node_color = {n:'blue' for n in G.nodes}
 		edge_color = [edge_colour(e) for e in G.edges()]
@@ -374,5 +376,89 @@ class Connectivity:
 
 		# Show graph
 		plt.axis("off")
+		
+		from time import time
+		def on_click(event, ax):
+			ax.click_loc = (event.x,event.y)
+		
+		annotations = []
+		MAX_CLICK_LENGTH = 10
+		def on_release(event, ax):
+			
+			# Get event details
+			x,y = event.xdata, event.ydata
+			canvas = event.canvas			
+			
+			# Ensure we're on the canvas
+			if x is None or y is None:
+				return
+			
+			# Ensure left mouse button
+			if event.button != 1:
+				return
+			
+			# Ensure this is not a drag
+			if abs(ax.click_loc[0]-event.x)+abs(ax.click_loc[1]-event.y) > MAX_CLICK_LENGTH:
+				return
+			
+			# Get nearest node
+			dists = [((pos[0]-x)**2 + (pos[1]-y)**2, n) for n,pos in graph_pos.items()]
+			dists.sort()
+			node = dists[0][1]
+			xn,yn = graph_pos[node]
+			
+			from matplotlib.offsetbox import TextArea, AnnotationBbox
+			
+			# Define a 1st position to annotate (display it with a marker)
+# 			ax.plot(xn, yn, ".r")
+
+			# Annotate the 1st position with a text box ('Test 1')
+			label = ""
+			if type(node) == var:
+				label += 'Port ' + str(node.name)
+				label += '\n' + str(node.direction)
+				label += '\n' + str(node.kind)
+			else:
+				label += 'Block ' + str(node.name)
+				label += '\n' + str(node.__class__.__name__)
+				label += '\n in ' + str(node.__class__.__module__)
+			
+			bg_col = 'goldenrod'
+			text_col = 'white'
+			offsetbox = TextArea(label, textprops={'color':text_col}, minimumdescent=False)
+			
+			import matplotlib.patheffects as pe
+			ab = AnnotationBbox(offsetbox, (xn,yn),
+								xybox=(-20, 40),
+								xycoords='data',
+								boxcoords="offset points",
+								frameon=True,
+								arrowprops={'shrinkA':0, 'arrowstyle':'-', 
+									'facecolor':bg_col, 'edgecolor':bg_col,
+									'lw':1.5, 
+									'connectionstyle':"arc3,rad=0.4",
+									'path_effects':[pe.Stroke(linewidth=4.5, foreground='w'), pe.Normal()]},
+								bboxprops={'facecolor':bg_col, 'edgecolor':'w','lw':1.5,  'boxstyle':'round4,pad=0.6'})
+			
+			# Mark annotation with the node it points to, for later use
+			ab.node = node
+			
+			try:
+				annotations[-1].remove()
+				# If user clicks same node again, remove annotation
+				if annotations[-1].node is not node:
+					ax.add_artist(ab)
+					annotations.append(ab)
+			except:
+				ax.add_artist(ab)
+				annotations.append(ab)
+			
+			# Update canvas
+			canvas.draw()
+
+
+		fig.canvas.mpl_connect('button_press_event', lambda event:on_click(event,ax))
+		fig.canvas.mpl_connect('button_release_event', lambda event:on_release(event,ax))
+		
 		plt.show()
 
