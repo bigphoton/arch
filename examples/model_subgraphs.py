@@ -18,6 +18,8 @@ from arch.blocks.optics import Beamsplitter, PhaseShifter, MachZehnder
 from arch.blocks.sources import LaserCW
 from arch.blocks.electro_optics import Switch2x2
 from arch.blocks.logic import NotGate
+from arch.blocks.interface.optoelectronic import Photodiode
+from arch.blocks.interface.electrical import Comparator
 from arch.architecture import Architecture
 
 
@@ -29,10 +31,15 @@ if __name__ == '__main__':
 	bs = Beamsplitter()
 	sw = Switch2x2(loss_dB=0, extinction_ratio=float('inf'))
 	notg = NotGate()
+	pd = Photodiode()
+	comp = Comparator()
 	
 	con = Connectivity( [
 			(laser.out, bs.in0),
-			(bs.out1, sw.in0),
+			(bs.out0, sw.in0),
+			(bs.out1, pd.inp),
+			(pd.i, comp.inp),
+			(comp.out, notg.inp),
 			(notg.out, sw.state),
 			] )
 	
