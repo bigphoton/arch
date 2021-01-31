@@ -16,7 +16,7 @@ class NotGate(Block):
 	
 	def define(self):
 		
-		self.add_port(name='in', kind=port.kind.digital,
+		self.add_port(name='inp', kind=port.kind.digital,
 						direction=port.direction.inp)
 		self.add_port(name='out', kind=port.kind.digital,
 						direction=port.direction.out)
