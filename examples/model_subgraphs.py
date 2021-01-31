@@ -30,7 +30,9 @@ if __name__ == '__main__':
 	laser = LaserCW()
 	bs = Beamsplitter()
 	sw = Switch2x2(loss_dB=0, extinction_ratio=float('inf'))
-	notg = NotGate()
+	notg0 = NotGate()
+	notg1 = NotGate()
+	notg2 = NotGate()
 	pd = Photodiode()
 	comp = Comparator()
 	
@@ -39,11 +41,16 @@ if __name__ == '__main__':
 			(bs.out0, sw.in0),
 			(bs.out1, pd.inp),
 			(pd.i, comp.inp),
-			(comp.out, notg.inp),
-			(notg.out, sw.state),
+			(comp.out, notg0.inp),
+			(notg0.out, notg1.inp),
+			(notg1.out, notg2.inp),
+			(notg2.out, sw.state),
 			] )
 	
-	con.draw()
+	g = con.block_model_connectivity_distil()
+	print('got',g)
+	
+# 	con.draw()
 		
 	import networkx as nx
 	
