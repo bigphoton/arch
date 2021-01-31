@@ -47,7 +47,7 @@ if __name__ == '__main__':
 			(notg2.out, sw.state),
 			] )
 	
-	g = con.block_model_connectivity_distil()
+	g = con.matching_model_subsets()
 	print('got',g)
 	
 # 	con.draw()
