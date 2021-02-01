@@ -332,13 +332,56 @@ class Linear(SymbolicModel):
 	def compound(cls, name, models, connectivity):
 		
 		try:
-		
+			print("Compounding in Linear")
+			
 			if all([isinstance(m,Linear) for m in models]):
 		
 				if connectivity.has_loops:
-					raise NotImplementedError("Unable to hybridise models of type '{:}' "
-											"containing loops".format(cls))
-			
+					print("Connectivity has loops, but trying to compound in Linear anyway")
+					
+					loops = connectivity.loops
+					
+					from arch.block import Block
+					
+					for loop in loops:
+						loop_blocks = [b for b in loop if isinstance(b,Block)]
+						loop_mods = [b.model for b in loop_blocks]
+						loop_exprs = dict()
+						for m in loop_mods:
+							loop_exprs |= m.out_exprs
+						
+						# Keep loop port connections
+						con_subs = dict()
+						for i in range(len(loop)-1):
+							if type(loop[i]) == type(loop[i-1]) == port.var:
+								con_subs |= {loop[i]:loop[i-1]}
+						
+						for o in loop_exprs:
+							loop_exprs[o] = loop_exprs[o].subs(con_subs)
+						
+						# Make homogeneous equations to solve
+						loop_eqs = [e - o for o,e in loop_exprs.items()]
+						
+						ext_ports = connectivity.external_ports(loop_blocks)
+						ext_ports = {p for p in ext_ports if p.kind == port.kind.optical}
+						
+						# We need to solve for these
+						ext_out_ports = {p for p in ext_ports if p.direction == port.direction.out}
+						all_out_ports = [p for p in connectivity.ports if p.direction == port.direction.out]
+						
+						# Fire linear solver
+						sol_set = sympy.linsolve(loop_eqs, all_out_ports)
+						
+						if type(sol_set) != sympy.FiniteSet:
+							raise NotImplementedError("Cannot solve loop eqs.")
+						
+						# Unpack
+						sols = next(iter(sol_set))
+						sol_exprs = {o:e.simplify() for o,e in 
+											zip(all_out_ports,sols)}
+					
+					return None
+				
 				# Put models in causal order
 				models = connectivity.order_models(models)
 				
