@@ -114,19 +114,33 @@ class Connectivity:
 	
 	
 	@property
-	def external_ports(self):
-		return {p for b in self.blocks for p in b.ports if p not in self}
+	def ports(self):
+		return {p for p in self.__port_graph if type(p) == port.var}
+	
+	
+	def external_ports(self, blocks=None):
+		"""
+		Get ports on surface of connectivity. If `blocks` is set, get ports on
+		surface of those ports within this connectivity.
+		
+		blocks: collection of blocks or None (default None)
+		"""
+		if blocks is None:
+			return {p for b in self.blocks for p in b.ports if p not in self}
+		else:
+			subcon = self.filtered_by_blocks(blocks)
+			return {p for b in blocks for p in b.ports if p not in subcon}
 	
 	
 	@property
 	def external_in_ports(self):
-		return {p for p in self.external_ports if p.direction == port.direction.inp}
+		return {p for p in self.external_ports() if p.direction == port.direction.inp}
 	
 	
 	@property
 	def external_out_ports(self):
 		print("Getting external out ports")
-		return {p for p in self.external_ports if p.direction == port.direction.out}
+		return {p for p in self.external_ports() if p.direction == port.direction.out}
 	
 	
 	def test(self, port0, port1=None):
