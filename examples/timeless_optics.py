@@ -16,18 +16,38 @@ from arch.blocks.optics import Beamsplitter, PhaseShifter, MachZehnder
 if __name__ == '__main__':
 	
 	ps = PhaseShifter()
-	ps1 = PhaseShifter()
 	bs = Beamsplitter()
+	bs1 = Beamsplitter()
 	
-	
-	con = Connectivity( [
+	con_mz = Connectivity( [
 					(bs.out1, ps.inp),
-					(ps.out, ps1.inp),
-					(ps1.out, bs.in1),
+					(ps.out, bs1.in1),
+					(bs.out0, bs1.in0),
 					] )
 	
+	con_bs_only = Connectivity( [
+					(bs.out1, ps.inp),
+					(ps.out, bs1.in1),
+					(bs1.out1, bs.in1),
+					] )
 	
-	cm = Linear.compound("compound name", [ps.model, bs.model], con)
+	con_ring = Connectivity( [
+					(bs.out1, ps.inp),
+					(ps.out, bs.in1),
+					] )
+	
+	con_double_ring = Connectivity( [
+					(bs.out1, ps.inp),
+					(ps.out, bs1.in1),
+					(bs1.out1, bs.in1),
+					(bs1.out0, bs1.in0),
+					] )
+	
+	con = con_ring
+	
+# 	con.draw()
+	
+	cm = Linear.compound("compound name", con.models, con)
 	
 	
 	

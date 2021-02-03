@@ -281,9 +281,9 @@ class SymbolicModel(Model):
 
 
 import sympy
-from sympy import Matrix, sqrt, I, exp
-import arch.port as port
+from sympy import sqrt, I, exp
 from sympy import ImmutableMatrix, Matrix
+import arch.port as port
 
 class Linear(SymbolicModel):
 	"""
@@ -335,6 +335,8 @@ class Linear(SymbolicModel):
 			print("Compounding in Linear")
 			
 			if all([isinstance(m,Linear) for m in models]):
+			
+				print("starting models =",models)
 		
 				if connectivity.has_loops:
 					print("Connectivity has loops, but trying to compound in Linear anyway")
@@ -343,47 +345,128 @@ class Linear(SymbolicModel):
 					
 					from arch.block import Block
 					
-					for loop in loops:
+					n_loop = 0
+					for n_loop,loop in enumerate(loops):
+						
+						print("Processing loop",' -> '.join([str(e.name) for e in loop]))
 						loop_blocks = [b for b in loop if isinstance(b,Block)]
 						loop_mods = [b.model for b in loop_blocks]
+						
+						assert all([m in models for m in loop_mods]), "All loop models not in `models`"
+						
 						loop_exprs = dict()
 						for m in loop_mods:
 							loop_exprs |= m.out_exprs
 						
 						# Keep loop port connections
 						con_subs = dict()
-						for i in range(len(loop)-1):
+						for i in range(len(loop)):
 							if type(loop[i]) == type(loop[i-1]) == port.var:
 								con_subs |= {loop[i]:loop[i-1]}
+						
+# 						print("subs=",con_subs)
 						
 						for o in loop_exprs:
 							loop_exprs[o] = loop_exprs[o].subs(con_subs)
 						
 						# Make homogeneous equations to solve
-						loop_eqs = [e - o for o,e in loop_exprs.items()]
+						loop_vars = list(loop_exprs.keys())
+						loop_vars.sort(key=lambda x: str(x))
+# 						print(loop_vars)
+# 						loop_eqs = [e - o for o,e in loop_exprs.items()]
+						loop_eqs = [loop_exprs[o] - o for o in loop_vars]
 						
-						ext_ports = connectivity.external_ports(loop_blocks)
-						ext_ports = {p for p in ext_ports if p.kind == port.kind.optical}
+						ex_ports = list(connectivity.external_ports(loop_blocks))
+						ex_ports.sort(key=lambda x:str(x))
+						ex_ports = [p for p in ex_ports if p.kind == port.kind.optical]
 						
 						# We need to solve for these
-						ext_out_ports = {p for p in ext_ports if p.direction == port.direction.out}
-						all_out_ports = [p for p in connectivity.ports if p.direction == port.direction.out]
+						ex_out_ports = [p for p in ex_ports if p.direction == port.direction.out]
+						ex_in_ports = [p for p in ex_ports if p.direction == port.direction.inp]
+						ports = list(connectivity.ports)
+						ports.sort(key=lambda x:str(x))
+						all_out_ports = [p for p in ports if p.direction == port.direction.out]
 						
-						# Fire linear solver
-						sol_set = sympy.linsolve(loop_eqs, all_out_ports)
+						
+						
+						if False:
+							
+							# Get linear system to solve
+							from sympy import zeros
+							d = len(all_out_ports)
+						
+							# Work out M.x = b components
+							M = zeros(d)
+							x = list(all_out_ports)
+							b = Matrix([0]*d)
+							xvars = all_out_ports
+							bvars = ex_in_ports
+						
+							# Compute elements from eq coefficients
+							for i,x in enumerate(xvars):
+								for j,y in enumerate(xvars):
+									M[i,j] = loop_eqs[i].coeff(y)
+								for j,y in enumerate(bvars):
+									b[i] -= loop_eqs[i].coeff(y) * y
+						
+							# Fire linear solver
+							sol_set = sympy.linsolve((M, b))
+							
+						else:
+						
+							# Fire linear solver
+							sol_set = sympy.linsolve(loop_eqs, all_out_ports)
 						
 						if type(sol_set) != sympy.FiniteSet:
 							raise NotImplementedError("Cannot solve loop eqs.")
 						
 						# Unpack
 						sols = next(iter(sol_set))
-						sol_exprs = {o:e.simplify() for o,e in 
+						sol_exprs = {o:e for o,e in 
 											zip(all_out_ports,sols)}
-					
-					return None
+						
+						# Now lump loop elements into one matrix
+						# Matrix is square, with dimension len(ex_in_ports)
+						from sympy import zeros
+						U = zeros(len(ex_in_ports))
+						
+						# Compute matrix elements from expr coefficients
+						for no,o in enumerate(ex_out_ports):
+							for ni,i in enumerate(ex_in_ports):
+								U[no,ni] = sol_exprs[o].expand().coeff(i).simplify()
+						
+						# We now have ex_out_ports = U @ ex_in_ports for this loop
+# 						print('got U =')
+# 						sympy.pprint(U)
+						
+						loop_mod = Linear(name=f'loop {n_loop} mod', ports=ex_ports, unitary_matrix=U)
+						
+						# Remove loop models from `models`
+						for m in loop_mods:
+							models.remove(m)
+						
+						# Add computed `loop_mod` back to `models`
+						if type(models) == list:
+							models.append(loop_mod)
+						elif type(models) == set:
+							models.add(loop_mod)
+						else:
+							models += loop_mod
+						
+						# Track number of loops handled
+						n_loop += 1
+						
+						print("made loop model",loop_mod)
+						print("models =",models)
 				
 				# Put models in causal order
 				models = connectivity.order_models(models)
+				
+				print("ordered models =",models)
+				
+				from IPython import embed
+				embed()
+				return None
 				
 				
 				# Filter the connectivity to only cover these models
