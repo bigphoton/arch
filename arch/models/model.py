@@ -126,8 +126,7 @@ class NumericModel(Model):
 	out_func: function of dict keyed by input ports, returning dict keyed by output ports
 	"""
 	
-	def define(self, out_func=None, **kwargs):
-		super().define(**kwargs)
+	def define(self, out_func=lambda x:x, **kwargs):
 		
 		self.properties.add("numeric")
 		
@@ -187,7 +186,6 @@ class SymbolicModel(Model):
 	"""
 	
 	def define(self, out_exprs=None, **kwargs):
-		super().define(**kwargs)
 		
 		self.properties.add("symbolic")
 		if out_exprs is not None:

@@ -3,7 +3,7 @@ Functions and objects describing digital logic.
 """
 
 import numpy
-from arch.models import model
+from arch.models import NumericModel
 
 
 def _bin_to_int(b_list):
@@ -22,27 +22,28 @@ def _int_to_bin(i, n):
 	return [int(x) for x in list('{0:0{1}b}'.format(i,n))]
 
 
-class combinatorial(model):
+class CombinatorialN(NumericModel):
 	"""
 	Digital input digital output model.
-	truth_table: list of ints truth_table[vin] = vout (for binary vin, vout)
+	
+	truth_table: list of int, truth_table[int_in] = int_out
 	"""
 	
-	def __init__(self, truth_table, n_output_bits):
-		super(type(self), self).__init__()
+	def define(self, truth_table=[], n_output_bits=0, **kwargs):
 		
 		self.truth_table = truth_table
 		self.n_output_bits = n_output_bits
-	
-	
-	def compute(self, input_vector):
-		# Get integer input value from port
-		in_int = _bin_to_int([e.value for e in input_vector])
 		
-		# Get truth table output
-		out_int = self.truth_table[in_int]
+		def out_func(state):
+			
+			# Convert between dict state, list of bools, and int representation
+			vin = [state[p] for p in self.in_ports]
+			iin = _bin_to_int(vin)
+			iout = self.truth_table[iin]
+			vout = _int_to_bin(iout, self.n_output_bits)
+			
+			return state | {self.out_ports[i]:vout[i] for i in range(len(self.out_ports))}
+			
+			return state | {p:v for p,v in zip(self.out_ports, vout)}
 		
-		# Get the corresponding binary list
-		vout = _int_to_bin(out_int, self.n_output_bits)
-		
-		return vout
+		self.out_func = out_func

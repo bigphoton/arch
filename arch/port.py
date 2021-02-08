@@ -39,6 +39,26 @@ KIND_ASSUMPTIONS = {
 		kind.integer:{'integer':True}
 		}
 
+KIND_NORMALISERS = {
+		kind.optical: (lambda x : abs(x)**2),
+		kind.digital: (lambda x : x),
+		kind.temperature: (lambda x : x),
+		kind.voltage: (lambda x : x),
+		kind.current: (lambda x : x),
+		kind.real: (lambda x : x),
+		kind.complex: (lambda x : abs(x)**2),
+		kind.integer: (lambda x : x),
+		}
+	
+def norm(port, port_value):
+	"""
+	Normalise port value, for plotting, etc.
+	
+	port: port.var instance
+	port_value: value of port
+	"""
+	return KIND_NORMALISERS[port.kind](port_value)
+
 class direction(Enum):
     inp = 0
     out = 1
@@ -80,3 +100,21 @@ class var(sympy.core.symbol.Symbol):
 		The name is set based on the *last* block to which we are associated.
 		"""
 		return block_name + '.' + local_name
+
+
+
+def print_state(state):
+		
+		assert type(state) == dict
+		assert all({type(k) == var for k in state})
+		
+		# Put state kvps in a list, sort appropriately
+		l = [{'kind':str(p.kind),'port name':str(p.local_name),'block name':str(p.block.name),'port':p,'value':v} for p,v in state.items()]
+		
+		l.sort(key=(lambda e : (e['block name'],e['kind'],e['port name'])))
+		
+		l = ["{:10s}:  {}".format(str(e['port']),e['value']) for e in l]
+		s = ",\n ".join(l)
+		s = "{"+s+"}"
+		
+		print(s)

@@ -94,12 +94,16 @@ class Connectivity:
 		return Connectivity({(i,o) for i,o in self if predicate(i,o)})
 	
 	
-	def filtered_by_blocks(self, blocks):
+	def filtered_by_blocks(self, blocks, exclusive=False):
 		"""
 		Return a Connectivity object with connections involving `blocks`.
 		blocks: iterable of `Block` objects
 		"""
-		predicate = lambda i,o: any([block in {i.block, o.block} for block in blocks])
+		
+		if exclusive:
+			predicate = lambda i,o: all([block in {i.block, o.block} for block in blocks])
+		else:
+			predicate = lambda i,o: any([block in {i.block, o.block} for block in blocks])
 		return self.filtered(predicate)
 	
 	
@@ -114,6 +118,14 @@ class Connectivity:
 	
 	
 	@property
+	def ports(self):
+		"""
+		Return set of all described ports.
+		"""
+		return {p for p in self.__port_graph if type(p) == var}
+	
+	
+	@property
 	def external_ports(self):
 		return {p for b in self.blocks for p in b.ports if p not in self}
 	
@@ -125,8 +137,15 @@ class Connectivity:
 	
 	@property
 	def external_out_ports(self):
-		print("Getting external out ports")
 		return {p for p in self.external_ports if p.direction == port.direction.out}
+	
+	
+	@property
+	def internal_ports(self):
+		"""
+		Return set of all described ports internal to the connectivity.
+		"""
+		return (self.ports - self.external_ports)
 	
 	
 	def test(self, port0, port1=None):
@@ -187,6 +206,19 @@ class Connectivity:
 	@property
 	def model_graph(self):
 		return self.__model_graph
+	
+	
+	def matching_model_subsets(self):
+		"""
+		Get graph of nodes lumped by connected similar models.
+		"""
+		
+		g = self.__block_graph
+		
+		block_sets = set(nx.algorithms.minors.quotient_graph(g, partition=lambda a,b: type(a.model)==type(b.model), 
+				create_using=nx.MultiDiGraph).nodes())
+		
+		return block_sets
 	
 	
 	def all_blocks_ordered(self):
@@ -312,6 +344,8 @@ class Connectivity:
 				except:
 					return edge_colours[None]
 		
+		fig, ax = plt.subplots()
+		
 		# Drawing properties
 		node_color = {n:'blue' for n in G.nodes}
 		edge_color = [edge_colour(e) for e in G.edges()]
@@ -374,5 +408,90 @@ class Connectivity:
 
 		# Show graph
 		plt.axis("off")
+		
+		from time import time
+		def on_click(event, ax):
+			ax.click_loc = (event.x,event.y)
+		
+		annotations = []
+		MAX_CLICK_LENGTH = 10
+		def on_release(event, ax):
+			
+			# Get event details
+			x,y = event.xdata, event.ydata
+			canvas = event.canvas			
+			
+			# Ensure we're on the canvas
+			if x is None or y is None:
+				return
+			
+			# Ensure left mouse button
+			if event.button != 1:
+				return
+			
+			# Ensure this is not a drag
+			if abs(ax.click_loc[0]-event.x)+abs(ax.click_loc[1]-event.y) > MAX_CLICK_LENGTH:
+				return
+			
+			# Get nearest node
+			dists = [((pos[0]-x)**2 + (pos[1]-y)**2, n) for n,pos in graph_pos.items()]
+			dists.sort()
+			node = dists[0][1]
+			xn,yn = graph_pos[node]
+			
+			from matplotlib.offsetbox import TextArea, AnnotationBbox
+			
+			# Define a 1st position to annotate (display it with a marker)
+# 			ax.plot(xn, yn, ".r")
+
+			# Annotate the 1st position with a text box ('Test 1')
+			label = ""
+			if type(node) == var:
+				label += 'Port ' + str(node.name)
+				label += '\n' + str(node.direction)
+				label += '\n' + str(node.kind)
+			else:
+				label += 'Block: ' + str(node.name)
+				label += '\n' + str(node.__class__.__name__)
+				label += '\n in ' + str(node.__class__.__module__)
+				label += '\nModel: ' + str(node.model.__class__.__name__)
+			
+			bg_col = 'goldenrod'
+			text_col = 'white'
+			offsetbox = TextArea(label, textprops={'color':text_col}, minimumdescent=False)
+			
+			import matplotlib.patheffects as pe
+			ab = AnnotationBbox(offsetbox, (xn,yn),
+								xybox=(-20, 40),
+								xycoords='data',
+								boxcoords="offset points",
+								frameon=True,
+								arrowprops={'shrinkA':0, 'arrowstyle':'-', 
+									'facecolor':bg_col, 'edgecolor':bg_col,
+									'lw':1.5, 
+									'connectionstyle':"arc3,rad=0.4",
+									'path_effects':[pe.Stroke(linewidth=4.5, foreground='w'), pe.Normal()]},
+								bboxprops={'facecolor':bg_col, 'edgecolor':'w','lw':1.5,  'boxstyle':'round4,pad=0.6'})
+			
+			# Mark annotation with the node it points to, for later use
+			ab.node = node
+			
+			try:
+				annotations[-1].remove()
+				# If user clicks same node again, remove annotation
+				if annotations[-1].node is not node:
+					ax.add_artist(ab)
+					annotations.append(ab)
+			except:
+				ax.add_artist(ab)
+				annotations.append(ab)
+			
+			# Update canvas
+			canvas.draw()
+
+
+		fig.canvas.mpl_connect('button_press_event', lambda event:on_click(event,ax))
+		fig.canvas.mpl_connect('button_release_event', lambda event:on_release(event,ax))
+		
 		plt.show()
 
