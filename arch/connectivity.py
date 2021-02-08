@@ -118,6 +118,14 @@ class Connectivity:
 	
 	
 	@property
+	def ports(self):
+		"""
+		Return set of all described ports.
+		"""
+		return {p for p in self.__port_graph if type(p) == var}
+	
+	
+	@property
 	def external_ports(self):
 		return {p for b in self.blocks for p in b.ports if p not in self}
 	
@@ -129,8 +137,15 @@ class Connectivity:
 	
 	@property
 	def external_out_ports(self):
-		print("Getting external out ports")
 		return {p for p in self.external_ports if p.direction == port.direction.out}
+	
+	
+	@property
+	def internal_ports(self):
+		"""
+		Return set of all described ports internal to the connectivity.
+		"""
+		return (self.ports - self.external_ports)
 	
 	
 	def test(self, port0, port1=None):
