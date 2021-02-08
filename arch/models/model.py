@@ -6,6 +6,14 @@ import abc
 import sympy
 from ..connectivity import Connectivity
 import arch.port as port
+import numpy as np
+import math
+import copy
+import importlib.util
+try:
+	import thewalrus
+except:
+	print("Unable to import `thewalrus`. Using (slower) permanent backup function." )
 
 
 class Model(abc.ABC):
@@ -213,9 +221,14 @@ class SymbolicModel(Model):
 		
 		# Since our lambda func (and sympy.lambdify) deals in arg *vectors*, derive them from the
 		#  input dict, and derive the output dict from them.
+
+		
 		in_state_vec = [in_state[p] for p in self.in_ports]
+		print(in_state_vec,'sdfsdfsga hg')
 		out_state_vec = self._out_func_lambda(*in_state_vec)
-		out_state_dict = in_state | {self.out_ports[i]:out_state_vec[i] for i in range(len(out_state_vec))}
+		print(out_state_vec,'sdf')
+		#out_state_dict = in_state | {self.out_ports[i]:out_state_vec[i] for i in range(len(out_state_vec))}
+		out_state_dict =  {self.out_ports[i]:out_state_vec[i] for i in range(len(out_state_vec))}
 		
 		return out_state_dict
 		
@@ -429,6 +442,7 @@ class Linear(SymbolicModel):
 		
 		except NotImplementedError:
 			return super().compound(name=name, models=models, connectivity=connectivity)
+
 
 
 class LinearGroupDelay(Linear):

@@ -1,2 +1,6 @@
 numpy
 thewalrus
+networkx
+scipy
+matplotlib
+sympy

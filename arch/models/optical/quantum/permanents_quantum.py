@@ -98,7 +98,7 @@ class permanent_quantum(model):
 		"""
 		output_amplitudes=np.zeros(shape=(len(input_amplitudes)), dtype=complex)
 
-		#input_amplitudes=[0, 0, 0, 0, 1, 0, 0, 0, 0]
+	
 
 
 		#in the fully quantum case we need to calculate all possible contributions to the output state
@@ -156,9 +156,12 @@ class permanent_quantum(model):
 		return full_state_unitary
 
 
+	#def parse_
+
+
 
 	def compute(self, input_vector):
-
+		print(input_vector)
 		input_data = [e.value for e in input_vector]
 		vin = input_data[0]
 		output_data=copy.deepcopy(vin)
@@ -166,14 +169,23 @@ class permanent_quantum(model):
 		modes_list=[]
 		port_output=[]
 		
+		#read in a list of all the input modes in the state
 		for i in range(len(input_data)):
 			modes_list.append(input_data[i]['modes'][0])
+		
+		#read in all the state vector elements, and the corresponding
+		#amplitudes in the input state
+		state_vector_elements=[list(key) for key in vin['Global_state']]
+		input_amps=list(vin['Global_state'].values() )
+
+
+
+
 		
 		#create appropriate unitary to act on the global state from
 		full_unitary=self.create_full_state_unitary(matrix, vin['Global_state'], modes_list)
 		
-		state_vector_elements=[list(key) for key in vin['Global_state']]
-		input_amps=list(vin['Global_state'].values() )
+	
 
 	
 		output_amplitudes=self.calculate_probabilities(full_unitary, state_vector_elements, input_amps)

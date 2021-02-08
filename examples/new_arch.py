@@ -76,7 +76,7 @@ if __name__ == '__main__':
 	bs.delay = 1
 	
 	
-	config = 'unbalanced delay'
+	config = 'complex'
 	
 	if config == 'simple':
 		connections = Connectivity( [
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 	print('\ncm is',cm)
 	
 	print('cm is',cm)
-# 	print('out exprs',cm.out_exprs)
+	print('\n out exprs',cm.out_exprs)
 	print('out func', cm.out_func)
 	print('ports',cm.ports)
 	print('in ports',cm.in_ports)

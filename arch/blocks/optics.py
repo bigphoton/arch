@@ -5,9 +5,9 @@ Functions and objects describing optical components.
 from arch.block import Block
 from arch.connectivity import Connectivity
 from arch.models.model import Linear, LinearGroupDelay
-from sympy import Matrix, sqrt, exp, I
+from sympy import Matrix, sqrt, exp, I, eye
 import arch.port as port
-
+import numpy as np
 
 
 class Beamsplitter(Block):
@@ -22,7 +22,7 @@ class Beamsplitter(Block):
 		self.add_port(name='out1', kind=port.kind.optical, direction=port.direction.out)
 		r = self.add_port(name='R', kind=port.kind.real, direction=port.direction.inp, 
 							default=R)
-		
+		print(r)
 		M = Matrix([
 				[sqrt(r), I*sqrt(1 - r)],
 				[I*sqrt(1 - r), sqrt(r)] ])
@@ -42,7 +42,6 @@ class PhaseShifter(Block):
 						default=phi)
 		
 		M = Matrix([[exp(I*p)]])
-		
 		self.add_model(Linear('simple phase '+self.name, block=self, unitary_matrix=M))
 		self.add_model(LinearGroupDelay('group delay phase '+self.name, block=self, 
 								unitary_matrix=M, delay=1))
@@ -98,3 +97,41 @@ class RingResonator(Block):
 		self.use_port(name='R', original=bs.R)
 		
 		raise NotImplementedError("TODO")
+
+
+
+
+class Interferometer(Block):
+	"""
+	Class to calculate the evolution of a quantum state through
+	an interferometer described by some unitary.
+	For the moment must be instantiated with a unitary matrix.
+	"""
+	reference_prefix = "IF"
+	
+	def define(self, unitary=None):
+		
+		#TODO: HORIBBLE HARD CODING GET RID
+		M = Matrix([
+				[1, 1],
+				[1, 1] ])
+		s={(0, 0): 0j, (0, 1): 0j, (0, 2): 0j, (1, 0): 0j, (1, 1): 0, (1, 2): 0j, (2, 0): 0j, (2, 1): 0j, (2, 2): 0j}
+
+		m=[0,1]
+		
+
+		
+		self.add_port(name='out0', kind=port.kind.photonic, direction=port.direction.out)
+		self.add_port(name='out1', kind=port.kind.photonic, direction=port.direction.out)
+		self.add_port(name='in1', kind=port.kind.photonic, direction=port.direction.inp)
+		input_state=self.add_port(name='in0', kind=port.kind.photonic, direction=port.direction.inp) #Create new "quantum" port type?
+		U=self.add_port(name='unitary', kind=port.kind.real, direction=port.direction.inp)
+		
+		if U.data == {} :
+				U.data = Matrix([
+				[1, 1],
+				[1, 1] ])
+	
+
+
+		self.add_model(Linear('simple R '+self.name, block=self, unitary_matrix=U.data))

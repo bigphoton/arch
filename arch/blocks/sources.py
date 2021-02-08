@@ -51,5 +51,16 @@ class BasicSinglePhotonSource(Block):
 
 	reference_prefix="SPS"
 
-	def define(self, model_choice):
-		raise NotImplementedError()
+	def define(self, model_choice, max_occ=2):
+
+		if model_choice=='Fock':
+
+			P = self.add_port(name='P', kind=port.kind.real, direction=port.direction.inp, default=1.0)
+			max_occupation = self.add_port(name='max_occ', kind=port.kind.real, direction=port.direction.inp, default=max_occ)
+			out = self.add_port(name='out', kind=port.kind.photonic, direction=port.direction.out)
+
+			self.add_model(SourceModel('Fock state source'+self.name, block=self, 
+							out_exprs={out:sqrt(P)} ))
+		else:
+
+			raise NotImplementedError()
