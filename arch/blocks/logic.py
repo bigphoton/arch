@@ -4,7 +4,8 @@ Functions and objects describing logic gates.
 
 
 from arch.block import Block
-
+import arch.port as port
+from arch.models.electrical.digital.logic import CombinatorialN
 
 class NotGate(Block):
 	"""
@@ -14,7 +15,14 @@ class NotGate(Block):
 	reference_prefix = "U"
 	
 	def define(self):
-		raise NotImplementedError()
+		
+		self.add_port(name='inp', kind=port.kind.digital,
+						direction=port.direction.inp)
+		self.add_port(name='out', kind=port.kind.digital,
+						direction=port.direction.out)
+		
+		self.add_model(CombinatorialN('numerical NOT '+self.name, block=self, 
+							truth_table=[1,0], n_output_bits=1) )
 		
 
 class AndGate(Block):
