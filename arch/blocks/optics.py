@@ -109,29 +109,12 @@ class Interferometer(Block):
 	"""
 	reference_prefix = "IF"
 	
-	def define(self, unitary=None):
-		
-		#TODO: HORIBBLE HARD CODING GET RID
-		M = Matrix([
-				[1, 1],
-				[1, 1] ])
-		s={(0, 0): 0j, (0, 1): 0j, (0, 2): 0j, (1, 0): 0j, (1, 1): 0, (1, 2): 0j, (2, 0): 0j, (2, 1): 0j, (2, 2): 0j}
-
-		m=[0,1]
-		
-
+	def define(self, unitary):
 		
 		self.add_port(name='out0', kind=port.kind.photonic, direction=port.direction.out)
 		self.add_port(name='out1', kind=port.kind.photonic, direction=port.direction.out)
 		self.add_port(name='in1', kind=port.kind.photonic, direction=port.direction.inp)
 		input_state=self.add_port(name='in0', kind=port.kind.photonic, direction=port.direction.inp) #Create new "quantum" port type?
-		U=self.add_port(name='unitary', kind=port.kind.real, direction=port.direction.inp)
-		
-		if U.data == {} :
-				U.data = Matrix([
-				[1, 1],
-				[1, 1] ])
-	
+		#U=self.add_port(name='unitary', kind=port.kind.real, direction=port.direction.inp)
 
-
-		self.add_model(Linear('simple R '+self.name, block=self, unitary_matrix=U.data))
+		self.add_model(Linear('simple R '+self.name, block=self, unitary_matrix=unitary))
