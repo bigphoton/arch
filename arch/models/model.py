@@ -331,28 +331,26 @@ class Linear(SymbolicModel):
 	@classmethod
 	def compound(cls, name, models, connectivity):
 		
+		from arch.block import Block
+		
 		try:
-			print("Compounding in Linear")
-			
 			if all([isinstance(m,Linear) for m in models]):
-			
-				print("starting models =",models)
+				
+				# Copy connectivity so we can modify it if necessary
+				import copy
+				connectivity = copy.copy(connectivity)
 		
 				if connectivity.has_loops:
-					print("Connectivity has loops, but trying to compound in Linear anyway")
-					
-					loops = connectivity.loops
-					
-					from arch.block import Block
 					
 					n_loop = 0
-					for n_loop,loop in enumerate(loops):
+					while connectivity.has_loops and n_loop < 1000:
+						n_loop += 1
 						
-						print("Processing loop",' -> '.join([str(e.name) for e in loop]))
+						loop = connectivity.shortest_loop
+						
+						# print("Processing loop",' -> '.join([str(e.name) for e in loop]))
 						loop_blocks = [b for b in loop if isinstance(b,Block)]
 						loop_mods = [b.model for b in loop_blocks]
-						
-						assert all([m in models for m in loop_mods]), "All loop models not in `models`"
 						
 						loop_exprs = dict()
 						for m in loop_mods:
@@ -364,20 +362,17 @@ class Linear(SymbolicModel):
 							if type(loop[i]) == type(loop[i-1]) == port.var:
 								con_subs |= {loop[i]:loop[i-1]}
 						
-# 						print("subs=",con_subs)
-						
 						for o in loop_exprs:
 							loop_exprs[o] = loop_exprs[o].subs(con_subs)
 						
 						# Make homogeneous equations to solve
 						loop_vars = list(loop_exprs.keys())
 						loop_vars.sort(key=lambda x: str(x))
-# 						print(loop_vars)
-# 						loop_eqs = [e - o for o,e in loop_exprs.items()]
 						loop_eqs = [loop_exprs[o] - o for o in loop_vars]
 						
 						ex_ports = list(connectivity.external_ports(loop_blocks))
 						ex_ports.sort(key=lambda x:str(x))
+						all_ex_ports = ex_ports.copy()
 						ex_ports = [p for p in ex_ports if p.kind == port.kind.optical]
 						
 						# We need to solve for these
@@ -418,6 +413,11 @@ class Linear(SymbolicModel):
 							sol_set = sympy.linsolve(loop_eqs, all_out_ports)
 						
 						if type(sol_set) != sympy.FiniteSet:
+							print("Cannot solve loop eqs.")
+							print(sol_set)
+							print("Exit ipython to continue compounding.")
+							from IPython import embed
+							embed()
 							raise NotImplementedError("Cannot solve loop eqs.")
 						
 						# Unpack
@@ -435,11 +435,9 @@ class Linear(SymbolicModel):
 							for ni,i in enumerate(ex_in_ports):
 								U[no,ni] = sol_exprs[o].expand().coeff(i).simplify()
 						
-						# We now have ex_out_ports = U @ ex_in_ports for this loop
-# 						print('got U =')
-# 						sympy.pprint(U)
 						
-						loop_mod = Linear(name=f'loop {n_loop} mod', ports=ex_ports, unitary_matrix=U)
+						# We now have ex_out_ports = U @ ex_in_ports for this loop
+						loop_mod = Linear(name=f'loop {n_loop} mod', ports=all_ex_ports, unitary_matrix=U)
 						
 						# Remove loop models from `models`
 						for m in loop_mods:
@@ -453,21 +451,20 @@ class Linear(SymbolicModel):
 						else:
 							models += loop_mod
 						
-						# Track number of loops handled
-						n_loop += 1
+						from arch.block import GenericBlock
+						loop_block = GenericBlock(ports=loop_mod.ports, models=[loop_mod])
 						
-						print("made loop model",loop_mod)
-						print("models =",models)
+						connectivity = connectivity.replace_blocks_with_block(loop_blocks, loop_block)
 				
 				# Put models in causal order
-				models = connectivity.order_models(models)
-				
-				print("ordered models =",models)
-				
-				from IPython import embed
-				embed()
-				return None
-				
+				try:
+					models = connectivity.order_models(models)
+				except Exception as e:
+					print("Got exception when ordering models in model.py line 465.")
+					print(f"Exception was: {e}")
+					from IPython import embed
+					embed()
+					quit()
 				
 				# Filter the connectivity to only cover these models
 				connectivity = connectivity.filtered_by_models(models)
