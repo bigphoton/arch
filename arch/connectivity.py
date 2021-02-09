@@ -94,12 +94,16 @@ class Connectivity:
 		return Connectivity({(i,o) for i,o in self if predicate(i,o)})
 	
 	
-	def filtered_by_blocks(self, blocks):
+	def filtered_by_blocks(self, blocks, include_external_ports=True):
 		"""
 		Return a Connectivity object with connections involving `blocks`.
 		blocks: iterable of `Block` objects
+		include_external_ports: new connectivity to include ports of blocks not in `blocks`
 		"""
-		predicate = lambda i,o: any([block in {i.block, o.block} for block in blocks])
+		if include_external_ports:
+			predicate = lambda i,o: i.block in blocks or o.block in blocks
+		else:
+			predicate = lambda i,o: i.block in blocks and o.block in blocks
 		return self.filtered(predicate)
 	
 	
@@ -128,7 +132,7 @@ class Connectivity:
 		if blocks is None:
 			return {p for b in self.blocks for p in b.ports if p not in self}
 		else:
-			subcon = self.filtered_by_blocks(blocks)
+			subcon = self.filtered_by_blocks(blocks, include_external_ports=False)
 			return {p for b in blocks for p in b.ports if p not in subcon}
 	
 	
@@ -162,6 +166,11 @@ class Connectivity:
 	
 	
 	@property
+	def is_empty(self):
+		return True if len(self.__conns) == 0 else False
+	
+	
+	@property
 	def has_loops(self):
 		"""
 		Boolean, indicating whether Connectivity contains loops.
@@ -173,6 +182,11 @@ class Connectivity:
 	@property
 	def loops(self):
 		return nx.algorithms.cycles.simple_cycles(self.__port_graph)
+	
+	
+	@property
+	def shortest_loop(self):
+		return min(nx.algorithms.cycles.simple_cycles(self.__port_graph), key=lambda c: len(c))
 	
 	
 	@property
@@ -228,11 +242,78 @@ class Connectivity:
 		models: list of Model objects
 		"""
 		
-		all_models_ordered = nx.topological_sort(self.__model_graph)
+		G = self.__model_graph.copy()
 		
-		l = [m for m in all_models_ordered if m in models]
+		"""
+		TODO:
+		Instead of the below algorithm which handles the loop nodes in an ad hoc way,
+		just identify each loop and snip it in the middle by deleting an edge, then order
+		the result! -Josh
+		"""
 		
-		return l
+		for _ in range(100):
+			
+			if not nx.algorithms.dag.is_directed_acyclic_graph(G):
+				loop = nx.algorithms.cycles.find_cycle(G)
+				if len(loop) > 1:
+					G = nx.algorithms.minors.contracted_nodes(G, loop[0], loop[1],
+															self_loops=False, copy=False)
+			else:
+				
+				try:
+					l = [m for m in nx.topological_sort(G) if m in models]
+				except nx.exception.NetworkXUnfeasible:
+					print('nodes:',G.nodes())
+					print('cycles:',list(nx.algorithms.cycles.simple_cycles(G)))
+					l = []
+				l.extend([m for m in self.__model_graph if m in models and m not in G.nodes()])
+				l.extend([m for m in models if m not in l])
+		
+				return l
+		
+		raise TimeoutError("Too many loops in connectivity to order models")
+		
+		
+	def replace_blocks_with_block(self, blocks_to_replace, with_block):
+		"""
+		Replace connectivity block nodes with new node retaining the old nodes' connections.
+		
+		blocks_to_replace: iterable of blocks to replace, all blocks should be in connectivity
+		with_block: block to take their place
+		"""
+		
+		# Check all blocks to replace are in self
+		assert all([b in self.blocks for b in blocks_to_replace]), (f"All blocks "
+								f"({blocks_to_replace}) not in con ({self.blocks}).")
+		
+		all_block_ports = {p for b in blocks_to_replace for p in b.ports}
+		surface_ports = set(self.external_ports(blocks_to_replace))
+		internal_ports = all_block_ports - surface_ports
+		
+		# Check all surface ports are contained in `with_block`
+		assert all([p in with_block.ports for p in surface_ports])
+		
+		
+		con = Connectivity()
+		
+		for op,ip in self:
+			if ip in internal_ports and op in internal_ports:
+				# Connection is enclosed by surface
+				continue
+			elif ip in surface_ports:
+				# Connection enters surface
+				con.update([(op,ip)])
+			elif op in surface_ports:
+				# Connection exits surface
+				con.update([(op,ip)])
+			else:
+				# Connection does not touch surface
+				con.update([(op,ip)])
+		
+		assert not con.is_empty, "It is not yet possible to replace entire connectivities."
+		
+		return con
+		
 	
 	
 	def draw(self, draw_ports=True):
