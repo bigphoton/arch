@@ -109,7 +109,7 @@ class Block(abc.ABC):
 		return sym
 	
 	
-	def use_port(self, name, original):
+	def use_port(self, name, original, rename=True):
 		"""
 		Repurpose `original` port for use in this block. Call it `name`.
 		This method is designed to allow subclasses which contain other Block instances to
@@ -121,7 +121,8 @@ class Block(abc.ABC):
 			raise RuntimeError("Block modifications not allowed outside define().")
 		
 		original.block = self
-		original.name = var.new_name(self.name, name)
+		if rename:
+			original.name = var.new_name(self.name, name)
 		
 		self.__ports.append(original)
 		self.__setattr__(name, original)
@@ -195,6 +196,19 @@ class Block(abc.ABC):
 			return self.__models[0]
 		except IndexError:
 			return None
+
+
+class GenericBlock(Block):
+	
+	reference_prefix = "G"
+	
+	def define(self, ports, models):
+		
+		for p in ports:
+			self.use_port(p.name, p, rename=False)
+		
+		for m in models:
+			self.add_model(m)
 
 
 
