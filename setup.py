@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import setuptools
 
-with open("README_RAW.md", "r", encoding="utf-8") as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="arch",
     version="0.0.1",
-    description="Arch - Classical adn quantum photonic systems architecture tools",
+    description="Arch - Classical and quantum photonic systems architecture tools",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/BigPhoton/arch",
