@@ -4,7 +4,7 @@ Functions and objects describing electro-optic components.
 
 
 from arch.block import Block
-from arch.models.model import Linear
+from arch.models.model import Linear, SymbolicModel
 from sympy import Matrix, sqrt, exp, I, pi
 import arch.port as port
 
@@ -44,7 +44,7 @@ class ThermoOpticPhaseShifterBasicRT(Block):
 	
 	reference_prefix = "TOPM"
 	
-	def define(self, device_length=None, centre_wavelength=2.0E-6, ref_index_temp_func=lambda T:1.0*T, i0=None, v0=None):
+	def define(self, device_length=None, centre_wavelength=2.0E-6, ref_index_temp_func=lambda T:1.0*T, R=None):
 		"""
 		thermooptic_coeff: constant thermo-optic coefficient
 		i0: input port current
@@ -52,17 +52,29 @@ class ThermoOpticPhaseShifterBasicRT(Block):
 		"""
 		
 		
-		self.add_port(name='inp', kind=port.kind.optical, direction=port.direction.inp)
-		self.add_port(name='out', kind=port.kind.optical, direction=port.direction.out)
+		A,B,C,D = 1,-R,0,1
 		
-		self.add_port(name='i1', kind=port.kind.voltage, direction=port.direction.inp)
-		self.add_port(name='v1', kind=port.kind.current, direction=port.direction.out)
+		M = Matrix([[A,B],[C,D]])
+		
+		
+		inp = self.add_port(name='inp', kind=port.kind.optical, direction=port.direction.inp)
+		out = self.add_port(name='out', kind=port.kind.optical, direction=port.direction.out)
+		
+		i0 = self.add_port(name='i0', kind=port.kind.voltage, direction=port.direction.inp)
+		v0 = self.add_port(name='v0', kind=port.kind.current, direction=port.direction.inp)
+		i1 = self.add_port(name='i1', kind=port.kind.voltage, direction=port.direction.out)
+		v1 = self.add_port(name='v1', kind=port.kind.current, direction=port.direction.out)
 		
 		T = self.add_port(name='T', kind=port.kind.temperature, direction=port.direction.inp)
 		
 		
-		M = Matrix([[exp(I* (2*pi*device_length/centre_wavelength)*ref_index_temp_func(T) ) ]])
+		
+		oes = {
+			out: exp(I* (2*pi*device_length/centre_wavelength)*ref_index_temp_func(T) )*inp,
+			v1: +A*v0 + B*i0,
+			i1: -C*v0 - D*i0}
 		
 		
-		self.add_model(Linear('simple phase '+self.name, block=self, unitary_matrix=M))
+		
+		self.add_model(SymbolicModel('simple phase '+self.name, block=self, out_exprs=oes))
 		
