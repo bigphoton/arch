@@ -5,7 +5,7 @@ Functions and objects describing electro-optic components.
 
 from arch.block import Block
 from arch.models.model import Linear
-from sympy import Matrix, sqrt, exp, I
+from sympy import Matrix, sqrt, exp, I, pi
 import arch.port as port
 
 class Switch2x2(Block):
@@ -34,3 +34,35 @@ class Switch2x2(Block):
 				[I*sqrt(1 - r), sqrt(r)] ])
 		
 		self.add_model(Linear('simple switch '+self.name, block=self, unitary_matrix=M))
+
+
+
+class ThermoOpticPhaseShifterBasicRT(Block):
+	"""
+	Due to Dario, based on https://doi.org/10.1364/OE.27.010456
+	"""
+	
+	reference_prefix = "TOPM"
+	
+	def define(self, device_length=None, centre_wavelength=2.0E-6, ref_index_temp_func=lambda T:1.0*T, i0=None, v0=None):
+		"""
+		thermooptic_coeff: constant thermo-optic coefficient
+		i0: input port current
+		v0: input port voltage
+		"""
+		
+		
+		self.add_port(name='inp', kind=port.kind.optical, direction=port.direction.inp)
+		self.add_port(name='out', kind=port.kind.optical, direction=port.direction.out)
+		
+		self.add_port(name='i1', kind=port.kind.voltage, direction=port.direction.inp)
+		self.add_port(name='v1', kind=port.kind.current, direction=port.direction.out)
+		
+		T = self.add_port(name='T', kind=port.kind.temperature, direction=port.direction.inp)
+		
+		
+		M = Matrix([[exp(I* (2*pi*device_length/centre_wavelength)*ref_index_temp_func(T) ) ]])
+		
+		
+		self.add_model(Linear('simple phase '+self.name, block=self, unitary_matrix=M))
+		
