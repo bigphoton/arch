@@ -28,7 +28,7 @@ class Architecture(object):
     def simulations(self) -> List[Simulator]:
         return self.__simulations
 
-    @connections.setter
+    @simulations.setter
     def simulations(self, new: List[Simulator]) -> None:
         self.__simulations = new
 
