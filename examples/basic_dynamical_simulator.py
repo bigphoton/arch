@@ -5,13 +5,13 @@ sys.path.append(os.path.dirname(sys.path[0]))
 
 
 
-from arch.port import print_state
-from arch.connectivity import Connectivity
-from arch.blocks.optics import Beamsplitter, PhaseShifter
 from arch.blocks.sources import LaserCW
+from arch.blocks.optics import Beamsplitter, PhaseShifter
+from arch.connectivity import Connectivity
 from arch.simulations.simulations import BasicDynamicalSimulator
-from math import pi
 from arch.simulations.drive import constant, step, ramp
+from arch.port import print_state
+from math import pi
 
 
 print("Setting up blocks...")
