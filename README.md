@@ -32,5 +32,5 @@ How should we handle time?
 
 ## contributors
 
+### University of Bristol
 JW Silverstone, S Currie, DA Quintero Dominguez, M Radulovic, D Roberts, LM Rosenfeld
-University of Bristol
