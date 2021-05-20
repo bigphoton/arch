@@ -1,23 +1,22 @@
-from typing import List, Iterable
+from typing import List, Iterable, Union
 
 from arch.simulations.simulations import Simulator
 from arch.block import Block
-from arch.connectivity import Connectivity
 
 
 class Architecture(object):
 
     def __init__(self,
-                 blocks: Iterable[Block] = None,
-                 connections: Connectivity = None,
-                 simulation: Simulator = None) -> None:
+                 blocks: Union[Iterable[Block], None] = None,
+                 connections: Union[List, None] = None,
+                 simulation: Union[Simulator, None] = None) -> None:
 
         self.__blocks = blocks
         self.__connections = connections
         self.__simulations = [simulation]
 
     @property
-    def connections(self) -> Connectivity:
+    def connections(self) -> List:
         return self.__connections
 
     @connections.setter
