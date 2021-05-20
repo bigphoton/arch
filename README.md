@@ -1,32 +1,21 @@
 # arch
+
 System architecture tools for big quantum photonics.
 
 ## conventions
 
  * Tabs are used for indentation throughout. (4 spaces per tab)
- * Lines are wrapped hard at 120 characters length.
- * Classes are in lower-case with underscores, `like_this`.
- * Boolean state flags should be named as `is_*`: `is_hot`, `is_real`, `is_friendly`, etc.
- * Global constants are in upper-case, `LIKE_THIS`.
- * Keep names short
- * Give and take credit where it's due
  * Initial and date your FIXME and TODO notes
 
 ## philosophy
 
 `arch` should be
  * everything to everyone in quantum photonics
- * as close to perfect as possible: clear, concise, powerful
- 
-
-## graphics
- 
-If desired, graphics are currently implemented using the built-in `turtle` module and `tkinter`. Export to PostScript is
-possible, but export to other formats is currently not supported.
+ * clear, concise, powerful
 
 ## external package installation
 The non built-in packages required for this project are found in requirements.txt and can
-are installed with usual command `pip install -r requirements.txt`
+are installed as usual with `pip install -r requirements.txt`
  
 ## open problems
 
@@ -43,3 +32,5 @@ How should we handle time?
 
 ## contributors
 
+### University of Bristol
+JW Silverstone, S Currie, DA Quintero Dominguez, M Radulovic, D Roberts, LM Rosenfeld
