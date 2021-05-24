@@ -13,9 +13,13 @@ System architecture tools for big quantum photonics.
  * everything to everyone in quantum photonics
  * clear, concise, powerful
 
-## external package installation
+## Dependencies
+Python 3.9 is required.
+
 The non built-in packages required for this project are found in requirements.txt and can
 are installed as usual with `pip install -r requirements.txt`
+
+There is currently a bug which requires the use of sympy 1.7, rather than the most recent 1.8.
  
 ## open problems
 
