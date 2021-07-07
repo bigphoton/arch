@@ -84,18 +84,18 @@ class State(abc.ABC):
         assert self.reference_prefix != "_", \
             "reference_prefix must be set by all Block subclasses."
 
-        #if error raised then try
-        try:
-            existing_indices = Block.names[self.reference_prefix]
-            self.reference_index = max(existing_indices) + 1
-
-        except KeyError:
-            self.reference_index = 0
-            Block.names.update({self.reference_prefix: set()})
-
-        Block.names[self.reference_prefix].add(self.reference_index)
-
-        self.name = self.reference_prefix + str(self.reference_index)
+        # #if error raised then try
+        # try:
+        #     existing_indices = Block.names[self.reference_prefix]
+        #     self.reference_index = max(existing_indices) + 1
+        #
+        # except KeyError:
+        #     self.reference_index = 0
+        #     Block.names.update({self.reference_prefix: set()})
+        #
+        # Block.names[self.reference_prefix].add(self.reference_index)
+        #
+        # self.name = self.reference_prefix + str(self.reference_index)
 
 
     def __copy__(self) -> None:
