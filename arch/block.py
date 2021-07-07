@@ -67,18 +67,29 @@ class Block(abc.ABC):
         """
         Method overridden by subclasses to implement the block. kwargs are
         passed directly from __init__.
+
+        This is an abstract method which does not do anything, but allows
+        the use of this as a baseclass where these methods are inherited.
+
+        i.e can inherit from this block and do not need to have a define
+        method in order to work.
         """
         pass
 
+
+
     def _setup_new_name(self) -> None:
-        """
-
 
         """
+        Ensure the reference prefix attribute is overwritten.
 
+        """
+
+        # if reference prefix is blank, raise error
         assert self.reference_prefix != "_", \
             "reference_prefix must be set by all Block subclasses."
 
+        #if error raised then try
         try:
             existing_indices = Block.names[self.reference_prefix]
             self.reference_index = max(existing_indices) + 1
@@ -90,6 +101,7 @@ class Block(abc.ABC):
         Block.names[self.reference_prefix].add(self.reference_index)
 
         self.name = self.reference_prefix + str(self.reference_index)
+
 
     def add_port(self,
                  name: str,
@@ -178,6 +190,13 @@ class Block(abc.ABC):
 
         return new_self
 
+
+    """
+    The block must always have these properties. Having these 
+    abstract properties means you can define a block without 
+    explicitly populating these.
+    """
+    
     @property
     def ports(self) -> List:
         return self.__ports
