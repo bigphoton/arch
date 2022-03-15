@@ -1,6 +1,6 @@
 numpy
 thewalrus
 networkx
-scipy=1.7
+scipy
 matplotlib
-sympy
+sympy=1.7.1
