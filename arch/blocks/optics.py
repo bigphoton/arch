@@ -10,6 +10,22 @@ import arch.port as port
 import numpy as np
 
 
+class Waveguide(Block):
+	
+	reference_prefix = "WG"
+	
+	def define(self, eta=1.0):
+		
+		self.add_port(name='inp', kind=port.kind.optical, direction=port.direction.inp)
+		# self.add_state_buffer(name='state', kind=port.kind.optical, direction=port.direction.buffer)
+		self.add_port(name='out', kind=port.kind.optical, direction=port.direction.out)
+		
+		r = self.add_port(name='eta', kind=port.kind.real, direction=port.direction.inp, default = eta)
+
+		M = Matrix([[r]])
+		
+		self.add_model(Linear('waveguide '+self.name, block=self, unitary_matrix=M))
+        
 class Beamsplitter(Block):
 	
 	reference_prefix = "BS"
@@ -20,9 +36,8 @@ class Beamsplitter(Block):
 		self.add_port(name='in1', kind=port.kind.optical, direction=port.direction.inp)
 		self.add_port(name='out0', kind=port.kind.optical, direction=port.direction.out)
 		self.add_port(name='out1', kind=port.kind.optical, direction=port.direction.out)
-		r = self.add_port(name='R', kind=port.kind.real, direction=port.direction.inp, 
-							default=R)
-		print(r)
+		r = self.add_port(name='R', kind=port.kind.real, direction=port.direction.inp, default = R)
+
 		M = Matrix([
 				[sqrt(r), I*sqrt(1 - r)],
 				[I*sqrt(1 - r), sqrt(r)] ])
@@ -34,17 +49,16 @@ class PhaseShifter(Block):
 	
 	reference_prefix = "P"
 	
-	def define(self, phi=None):
+	def define(self, phi=0):
 		
 		self.add_port(name='inp', kind=port.kind.optical, direction=port.direction.inp)
 		self.add_port(name='out', kind=port.kind.optical, direction=port.direction.out)
 		p = self.add_port(name='phi', kind=port.kind.real, direction=port.direction.inp, 
 						default=phi)
 		
-		M = Matrix([[exp(I*p)]])
+		M = Matrix([[1.*exp(I*p)]])
 		self.add_model(Linear('simple phase '+self.name, block=self, unitary_matrix=M))
-		self.add_model(LinearGroupDelay('group delay phase '+self.name, block=self, 
-								unitary_matrix=M, delay=1))
+		self.add_model(LinearGroupDelay('group delay phase '+self.name, block=self, unitary_matrix=M, delay=1))
 
 
 class MachZehnder(Block):

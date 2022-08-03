@@ -42,8 +42,7 @@ class Model(abc.ABC):
 	@classmethod
 	def compound(cls, name, models, connectivity):
 		"""
-		Method to be implemented by subclasses. Subclasses should call the `compound` method
-		of `super` if they are unable to compound the input models (see snippet below).
+		Method to be implemented by subclasses. Subclasses should call the `compound` method of `super` if they are unable to compound the input models (see snippet below).
 		
 		try:
 			<Subclass compounding code here>
@@ -173,6 +172,14 @@ class NumericModel(Model):
 			return state
 		
 		return NumericModel(name=name, ports=ex_ports, out_func=out_func)
+
+
+class QuantumModel(Model):
+	"""
+	General quantum model.
+
+	Todo: global quantum model, handles symbolic state vectors as dictionary, propogates in time
+	"""
 
 
 class SymbolicModel(Model):
@@ -477,3 +484,44 @@ class SourceModel(SymbolicModel):
 		
 		self.out_optical_ports = [p for p in self.out_ports if p.kind == port.kind.optical]
 
+
+class DetectorModel(SymbolicModel):
+	"""
+	Model for detectors.
+	"""
+	
+	def define(self, **kwargs):
+		super().define(**kwargs)
+		
+		self.properties.add("detector")
+		
+		self.in_optical_ports = [p for p in self.in_ports if p.kind == port.kind.optical]
+		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]
+
+
+class TransmissionLineModel(SymbolicModel):
+	"""
+	Model for detectors.
+	"""
+	
+	def define(self, **kwargs):
+		super().define(**kwargs)
+		
+		self.properties.add("transmissionline")
+		
+		self.in_voltage_ports = [p for p in self.in_ports if p.kind == port.kind.voltage]
+		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]
+        
+        
+        
+class DCQontrolModel(SymbolicModel):
+	"""
+	Model for DC voltage provided by Qontrol (TM) drivers.
+	"""
+	
+	def define(self, **kwargs):
+		super().define(**kwargs)
+		
+		self.properties.add("qontrol")
+		
+		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]

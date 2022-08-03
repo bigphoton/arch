@@ -305,17 +305,18 @@ class Connectivity:
 			
 		graph_pos = nx.kamada_kawai_layout(self.__block_graph)
 		graph_pos = nx.spring_layout(nx.Graph(self.__block_graph), pos=graph_pos, 
-			k=0.2, iterations=100, seed=0)
+			k=0.1, iterations=100, seed=0)
 		graph_pos = rotate_pos(graph_pos, self.__block_graph)
 		if draw_ports:
 			graph_pos = scale_pos(graph_pos, G, 3.0)
 			graph_pos = nx.spring_layout(nx.Graph(G), pos=graph_pos, 
-				fixed=G_block_nodes, k=0.15, iterations=100, seed=0)
+				fixed=G_block_nodes, k=0.05, iterations=100, seed=0)
 		
 		edge_colours = {
 			port.kind.optical:	'blue',
 			port.kind.digital:	'black',
 			port.kind.real:		'gray',
+			port.kind.voltage:	'green',
 			None:				'red'
 			}
 		
@@ -356,20 +357,20 @@ class Connectivity:
 		# Draw graph elements
 		if draw_ports:
 			nx.draw_networkx_nodes(G_port_nodes, graph_pos, 
-						node_size=500, 
+						node_size=250, 
 						alpha=1, 
 						node_color=[node_colour(e) for e in G_port_nodes], 
 						linewidths=1, 
 						edgecolors=node_line_colour)
 			nx.draw_networkx_nodes(G_block_nodes, graph_pos,
-						node_size=1000, 
+						node_size=500, 
 						alpha=1, 
 						node_color=[node_colour(e) for e in G_block_nodes], 
 						linewidths=1, 
 						edgecolors=node_line_colour)
 		else:
 			nx.draw_networkx_nodes(G_block_nodes, graph_pos, 
-						node_size=1000, 
+						node_size=500, 
 						alpha=1, 
 						node_color=[node_colour(e) for e in G_block_nodes], 
 						linewidths=1, 
@@ -380,14 +381,14 @@ class Connectivity:
 		nx.draw_networkx_edges(G, graph_pos, 
 					edgelist=el,
 					edge_color=[edge_colour(e) for e in el], 
-					node_size=1000, 
+					node_size=500, 
 					connectionstyle=edge_style
 					)
 		el = [e for e in G.edges() if e[1] in G_port_nodes]
 		nx.draw_networkx_edges(G, graph_pos, 
 					edgelist=el,
 					edge_color=[edge_colour(e) for e in el], 
-					node_size=500, 
+					node_size=250, 
 					connectionstyle=edge_style
 					)
 		

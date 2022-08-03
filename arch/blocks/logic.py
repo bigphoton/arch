@@ -56,3 +56,14 @@ class NandGate(Block):
 	
 	def define(self):
 		raise NotImplementedError()
+        
+class IdGate(Block):
+	"""
+	A nand gate: 0 -> 0, 1 -> 1
+	"""
+	
+	reference_prefix = "Id"
+	
+	def define(self):
+        self.add_port(name='in0', kind=port.kind.voltage, direction=port.direction.inp)
+		self.add_port(name='in1', kind=port.kind.voltage, direction=port.direction.inp)

@@ -52,6 +52,7 @@ class Block(abc.ABC):
         # Placeholder lists
         self.__ports = list()
         self.__models = list()
+        self.__buffer = list()
 
         # Run subclass define routine
         if not _copy:
@@ -92,6 +93,32 @@ class Block(abc.ABC):
         self.name = self.reference_prefix + str(self.reference_index)
 
     def add_port(self,
+                 name: str,
+                 kind: port.kind,
+                 direction: port.direction,
+                 default: float = None) -> var:
+        """
+        Initialise a port, use it in this block.
+        """
+        assert type(kind) is port.kind
+        assert type(direction) is port.direction
+        if hasattr(self, '_inited'):
+            raise RuntimeError(
+                "Block modifications not allowed outside define().")
+
+        if default is None:
+            default = port.KIND_DEFAULTS[kind]
+
+        sym = var(name, block=self,
+                  kind=kind, direction=direction, default=default)
+
+        # Make this data accessible through the ports list,
+        # as an attribute, and as return
+        self.__ports.append(sym)
+        self.__setattr__(name, sym)
+        return sym
+		
+    def add_state_buffer(self,
                  name: str,
                  kind: port.kind,
                  direction: port.direction,
@@ -233,7 +260,7 @@ class AutoCompoundBlock(Block):
                 if not connectivity.test(p):
                     self.use_port(name=p.name.replace('.', '_'), original=p)
 
-        verbose = False  # Set me to True to print compounding debug info
+        verbose = True  # Set me to True to print compounding debug info
 
         def printv(*args):
             if verbose:
@@ -322,3 +349,4 @@ class AutoCompoundBlock(Block):
         printv("done compounding")
 
         self.add_model(next(iter(uncompounded_models)))
+

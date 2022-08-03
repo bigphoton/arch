@@ -44,8 +44,6 @@ if __name__ == '__main__':
 	if 'symbolic' in cm.properties:
 		print('out exprs',cm.out_exprs)
 		
-	
-	quit()
 		
 	import time
 	

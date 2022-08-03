@@ -123,16 +123,16 @@ if __name__ == '__main__':
 	print('\ncm is',cm)
 	
 	print('cm is',cm)
-	print('\n out exprs',cm.out_exprs)
-	print('out func', cm.out_func)
-	print('ports',cm.ports)
-	print('in ports',cm.in_ports)
-	print('out ports',cm.out_ports)
-	print('properties',cm.properties)
+	print('\n\nout exprs',cm.out_exprs)
+	print('\n\nout func', cm.out_func)
+	print('\n\nports',cm.ports)
+	print('\n\nin ports',cm.in_ports)
+	print('\n\nout ports',cm.out_ports)
+	print('\n\nproperties',cm.properties)
 	if 'optical' in cm.properties:
-		print('U',cm.U)
+		print('\n\nU',cm.U)
 	if 'symbolic' in cm.properties:
-		print('out exprs',cm.out_exprs)
+		print('\n\nout exprs',cm.out_exprs)
 		
 	import time
 	
@@ -141,20 +141,17 @@ if __name__ == '__main__':
 	state[ps0.phi] = 3.14
 	state[bs.R] = 0.01
 	state[bs.in0] = 1.0
-	print("default input state",state)
+	print("\n\ndefault input state",state)
 	
 	eval_time = time.time()
 	state = cm.out_func(state)
 	eval_time = time.time() - eval_time
 	
-	print("default output state",state)
+	print("\n\ndefault output state",state)
 		
 	print(f"Took {eval_time} s")
 	
-# 	oe = cm.out_exprs[mz1.out0]
-# 	import IPython
-# 	IPython.embed()
-# 	quit()
+
 	
 		
 	import networkx as nx
@@ -263,7 +260,7 @@ if __name__ == '__main__':
 	from math import pi
 	
 	in_time_funcs = {
-				laser.P: step(0,1.1,50), 
+				laser.P: step(0,1.1,30), 
 				mz0.phi: constant(pi/2), 
 				mz1.phi: constant(pi/2),
 				ps0.phi: ramp(0, pi, 50, 0),
@@ -288,26 +285,26 @@ if __name__ == '__main__':
 		for op in cm.out_ports:
 			
 			# Get delayed inputs
-			t0 = time.time()
+			# t0 = time.time()
 			for ip in cm.in_ports:
 				if ip in in_time_funcs:
 					state |= {ip:in_time_funcs[ip](t - dm[op][ip])}
-			t_setup += time.time()-t0
+			# t_setup += time.time()-t0
 				
 			# Update output using delayed inputs
-			t0 = time.time()
+			# t0 = time.time()
 			state |= cm.out_func(state)
-			t_out_func += time.time()-t0
+			# t_out_func += time.time()-t0
 			n_out_func_calls += 1
 			
 			# Update inputs to current time
-			t0 = time.time()
+			# t0 = time.time()
 			for ip in cm.in_ports:
 				if ip in in_time_funcs:
 					state |= {ip:in_time_funcs[ip](t)}
 			
 			states_ts.append((t,state.copy()))
-			t_close_copy += time.time()-t0
+			# t_close_copy += time.time()-t0
 	
 	t_total = time.time() - t_start
 	

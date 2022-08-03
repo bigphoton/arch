@@ -12,6 +12,7 @@ class kind(Enum):
 	temperature = 2
 	voltage = 3
 	current = 4
+	quantum = 5
 	real = 10
 	complex = 11
 	integer = 12
@@ -19,6 +20,7 @@ class kind(Enum):
 # Default symbol values for each kind of port. Put None for no default.
 # TODO: Would be nice to integrate this as a property of each kind as kind.default
 KIND_DEFAULTS = {
+		kind.quantum:[{'modes' : [], 'pos' : [], 'occ' : [], 'amps' :[]}],
 		kind.optical:0.0,
 		kind.digital:0, 
 		kind.temperature:300.0, 
@@ -29,6 +31,7 @@ KIND_DEFAULTS = {
 		kind.integer:0}
 
 KIND_ASSUMPTIONS = {
+		kind.quantum:{'dictionary':True},
 		kind.optical:{'complex':True},
 		kind.digital:{'integer':True, 'nonnegative':True}, 
 		kind.temperature:{'positive':True}, 
@@ -40,6 +43,7 @@ KIND_ASSUMPTIONS = {
 		}
 
 KIND_NORMALISERS = {
+		kind.quantum: (lambda x : np.sum([x['amps'][i]*x['amps'][i].H for i in len(x['amps'])])),
 		kind.optical: (lambda x : abs(x)**2),
 		kind.digital: (lambda x : x),
 		kind.temperature: (lambda x : x),
@@ -62,6 +66,7 @@ def norm(port, port_value):
 class direction(Enum):
     inp = 0
     out = 1
+    buffer = 2
 
 
 class var(sympy.core.symbol.Symbol):
