@@ -4,7 +4,7 @@ import scipy.linalg as sp
 from scipy.special import factorial
 from tensor_tests import dispersion_operator
 from toolbox import *
-from visual import *
+
 
 
 def guassian_amplitude(index,photons,alpha,Length=10,dz=0.1,sigma=1):
@@ -118,13 +118,29 @@ def overlap(MPS,connections):
 
 
 
+#gate = np.kron(np.identity(3),np.identity(3)).reshape((3,3,3,3))
 
+
+
+D = dispersion_operator(dt=0.1,dz=0.2,photon_cutoff=3)
+
+print(D.shape)
+
+U,S,V = sp.svd(D.reshape((9,9)))
+
+
+print(U)
 
 state1 = coherent_guassian_MPS(alpha=1.,dz=.2,photon_cutoff=3)
 
 
-draw_graph(state1)
 
+
+# fstate, timesteps = dispersion_evolve(initial_MPS=state1,Dispersion=D,time_steps=3)
+#
+# print(state1[1])
+# print(len(fstate[0]))
+#
 # state2 = coherent_guassian_MPS(alpha=1.,dz=.2,starting_index=150)
 #
 #
@@ -147,4 +163,16 @@ draw_graph(state1)
 #
 # print(ans)
 
+# gate = dispersion_operator(dt=0.1,photon_cutoff=3)
+#
+#
+#
+# A, D, B = coherent_guassian_tensor_pair(index=20)
+#
+#
+# u,s,v = QP_applygate(A,B,D,gate)
+#
+# print(u)
+# print(s)
+# print(v)
 

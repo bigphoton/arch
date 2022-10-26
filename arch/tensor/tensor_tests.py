@@ -2,14 +2,17 @@ from toolbox import *
 
 if __name__ == '__main__':
     Length = 10.
-    space_steps = 20
+    space_steps = 50
     dz = Length/space_steps
     print(dz)
-    photon_cutoff = 4
-    alpha = 1.
+    photon_cutoff = 3
+    alpha = 0.5
+    dt=0.00001
     top = coherent_guassian_MPS(alpha=alpha, dz=dz,photon_cutoff=photon_cutoff)
-    D = dispersion_operator(dt=0.1,dz=dz,photon_cutoff=photon_cutoff)
+    D = dispersion_operator(dt=dt,dz=dz,photon_cutoff=photon_cutoff)
+    KP = kerr_phase_operator(dt=dt,photon_cutoff=photon_cutoff,dz=dz)
 
+    print("shape of KP",KP.shape)
     # print(len(top[0]))
     #
     # sBA_left = top[0][50]
@@ -23,14 +26,14 @@ if __name__ == '__main__':
     # print(result[0].shape)
 
 
-    time_steps = 2
+    time_steps = 2000
 
-    final_state = dispersion_evolve(top,D,time_steps=time_steps)
+    final_state = dispersion_evolve(top,D,KP,time_steps=time_steps)
+
+    plot_time_steps = 10
 
 
-
-
-    for t in range(time_steps):
+    for t in np.arange(0,time_steps,int(time_steps/plot_time_steps)):
 
         data = []
         for i in range(1,space_steps):

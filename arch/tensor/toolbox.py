@@ -79,7 +79,7 @@ def intensity_operator(top_index,bottom_index,photon_cutoff=10):
 
     return T, connection
 
-def phase_operator(dt,photon_cutoff=10,dz=0.1):
+def kerr_phase_operator(dt,photon_cutoff=10,dz=0.1):
     return sp.expm((1j*dt)/(2*dz) * creation_op(photon_cutoff) @ creation_op(photon_cutoff) @ anihilation_op(photon_cutoff) @ anihilation_op(photon_cutoff))
 
 def dispersion_operator(dt,photon_cutoff=10,dz=0.1):
@@ -179,6 +179,15 @@ def apply_gate_MPS(gateAB, A, sAB, B, sBA_left, sBA_right, chi=70, stol=1e-10):
   return A, sAB_temp, B
 
 
+def QP_apply_single_gate(A,gate):
+
+    tensors = [A,gate]
+    connects = [[1,-2,-3],[-1,1]]
+
+    contracted_tensor = nc.ncon(tensors,connects)
+
+    return contracted_tensor
+
 def QP_applygate(A, B, D, gate,error_tol=1E-2,bond_dimension=70):
 
     """My version of applying a two site gate to tensors A,B and D"""
@@ -193,7 +202,7 @@ def QP_applygate(A, B, D, gate,error_tol=1E-2,bond_dimension=70):
 
     U, S, V = sp.svd(contracted_tensor)
 
-    print("Shapes of SVD tensors U S V:",U.shape,S.shape,V.shape)
+    #print("Shapes of SVD tensors U S V:",U.shape,S.shape,V.shape)
 
     # Can now truncate the decomposition by throwing away singular values below the tolerance threashold
     # we sum the squares in the reverse order deleting rowa/columns for U and V as we go until the threashold is reached
@@ -209,11 +218,11 @@ def QP_applygate(A, B, D, gate,error_tol=1E-2,bond_dimension=70):
             # Now delete rows/cols of U/V respectivly
             rc_to_del += 1
 
-    rows_to_keep = len(S) - rc_to_del
+    rows_to_keep = min(bond_dimension,len(S) - rc_to_del)
 
     U_prime = U[:,:rows_to_keep]#np.delete(U,rc_to_del,1)
     V_prime = V[:rows_to_keep,:]#np.delete(V,rc_to_del,0)
-    S_prime = S[0:len(S)-rc_to_del]
+    S_prime = S[0:rows_to_keep]
     temp = np.zeros((len(S_prime), len(S_prime)))
     np.fill_diagonal(temp, S_prime)
 
@@ -233,6 +242,17 @@ def QP_applygate(A, B, D, gate,error_tol=1E-2,bond_dimension=70):
 
     return A_prime, D_prime, B_prime
 
+
+def apply_kerr_phase(MPS,KP):
+    tensors = MPS[0]
+    connections = MPS[1]
+
+    for i,tensor in enumerate(tensors):
+        if len(tensor.shape) == 3:
+
+            tensors[i] = QP_apply_single_gate(tensor,KP)
+
+    return tensors, connections
 
 def apply_dispersion(MPS,D,kind='even'):
     tensors = MPS[0]
@@ -255,7 +275,7 @@ def apply_dispersion(MPS,D,kind='even'):
             # TESTING: trying my application of gate
             #result = apply_gate_MPS(gateAB=D,A=A,sAB=sAB,B=B,sBA_left=sBA_left,sBA_right=sBA_right)
 
-            print("shapes of tensors A, B, D, gate in apply gate:",A.shape,B.shape,sAB.shape,D.shape)
+            #print("shapes of tensors A, B, D, gate in apply gate:",A.shape,B.shape,sAB.shape,D.shape)
 
             result = QP_applygate(A=A,B=B,D=sAB,gate=D)
 
@@ -298,13 +318,13 @@ def apply_dispersion(MPS,D,kind='even'):
     return output_tensors, connections
 
 
-def dispersion_evolve(initial_MPS,Dispersion,time_steps=10):
+def dispersion_evolve(initial_MPS,Dispersion,KerrPhase,time_steps=10):
 
     state = initial_MPS
     state_time_steps = [initial_MPS]
 
     for i in range(time_steps):
-        print("#######################################################################")
+        #print("#######################################################################")
         # if i % 2 ==0:
         #     state = apply_dispersion(state,Dispersion,'even')
         # else:
@@ -312,6 +332,7 @@ def dispersion_evolve(initial_MPS,Dispersion,time_steps=10):
 
         state = apply_dispersion(state, Dispersion, 'even')
         state = apply_dispersion(state, Dispersion, 'odd')
+        state = apply_kerr_phase(state, KerrPhase)
 
         # #TODO trying renormalisation of the state
         # tensors = state[0] + [np.conjugate(x) for x in state[0]]
