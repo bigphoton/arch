@@ -74,7 +74,7 @@ def coherent_guassian_MPS(alpha,Length=10,dz=0.1,photon_cutoff=10,sigma=1, start
 
 def intensity_operator(top_index,bottom_index,photon_cutoff=10):
 
-    T =  anihilation_op(photon_cutoff=photon_cutoff) @  creation_op(photon_cutoff=photon_cutoff)
+    T =  anihilation_op(photon_cutoff=photon_cutoff) @ creation_op(photon_cutoff=photon_cutoff)
     connection = [bottom_index,top_index]
 
     return T, connection
@@ -332,7 +332,7 @@ def dispersion_evolve(initial_MPS,Dispersion,KerrPhase,time_steps=10):
 
         state = apply_dispersion(state, Dispersion, 'even')
         state = apply_dispersion(state, Dispersion, 'odd')
-        state = apply_kerr_phase(state, KerrPhase)
+        #state = apply_kerr_phase(state, KerrPhase)
 
         # #TODO trying renormalisation of the state
         # tensors = state[0] + [np.conjugate(x) for x in state[0]]

@@ -1,38 +1,32 @@
 from toolbox import *
+from matplotlib.animation import FuncAnimation
 
 if __name__ == '__main__':
     Length = 10.
     space_steps = 50
     dz = Length/space_steps
     print(dz)
-    photon_cutoff = 3
+    photon_cutoff = 4
     alpha = 0.5
-    dt=0.00001
+    dt=0.0001
     top = coherent_guassian_MPS(alpha=alpha, dz=dz,photon_cutoff=photon_cutoff)
     D = dispersion_operator(dt=dt,dz=dz,photon_cutoff=photon_cutoff)
     KP = kerr_phase_operator(dt=dt,photon_cutoff=photon_cutoff,dz=dz)
 
-    print("shape of KP",KP.shape)
-    # print(len(top[0]))
-    #
-    # sBA_left = top[0][50]
-    # A = top[0][51]
-    # sAB = top[0][52]
-    # B = top[0][53]
-    # sBA_right = top[0][54]
-    #
-    #
-    # result = apply_gate_MPS(D,A, sAB, B, sBA_left, sBA_right)
-    # print(result[0].shape)
+    # create empty lists for the x and y data
+    x = []
+    y = []
 
+    # create the figure and axes objects
+    fig, ax = plt.subplots()
 
-    time_steps = 2000
+    time_steps = 4000
 
-    final_state = dispersion_evolve(top,D,KP,time_steps=time_steps)
+    final_state = dispersion_evolve(top, D, KP, time_steps=time_steps)
 
-    plot_time_steps = 10
+    plot_time_steps = 200
 
-
+    intensity_time_series = []
     for t in np.arange(0,time_steps,int(time_steps/plot_time_steps)):
 
         data = []
@@ -75,6 +69,16 @@ if __name__ == '__main__':
             data.append(abs(ans))
 
 
-        plt.plot(range(1,space_steps),data)
+        #plt.plot(range(1,space_steps),data)
+        intensity_time_series.append((range(1,space_steps),data))
+
+
+    def time_annimation(t):
+        ax.clear()
+        ax.plot(intensity_time_series[t][0],intensity_time_series[t][1])
+        ax.set_ylim([0, 0.25])
+
+
+    ani = FuncAnimation(fig, time_annimation, frames=plot_time_steps, interval=1, repeat=True)
 
     plt.show()
