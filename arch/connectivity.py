@@ -308,7 +308,7 @@ class Connectivity:
 			k=0.1, iterations=100, seed=0)
 		graph_pos = rotate_pos(graph_pos, self.__block_graph)
 		if draw_ports:
-			graph_pos = scale_pos(graph_pos, G, 3.0)
+			graph_pos = scale_pos(graph_pos, G, 30.0)
 			graph_pos = nx.spring_layout(nx.Graph(G), pos=graph_pos, 
 				fixed=G_block_nodes, k=0.05, iterations=100, seed=0)
 		
@@ -393,9 +393,10 @@ class Connectivity:
 					)
 		
 		if not draw_ports:
-			edge_labs = {(n0,n1):G.get_edge_data(n0,n1)[0]['ports'] for n0,n1,m in G.edges}
+			edge_labs = {}#{(n0,n1):G.get_edge_data(n0,n1)[0]['ports'] for n0,n1,m in G.edges}
 			nx.draw_networkx_edge_labels(G, graph_pos, edge_labels=edge_labs, 
-				label_pos=0.5, font_size=8, font_family=text_font)
+				label_pos=0.5, font_size=8, font_family=text_font)			
+			# nx.draw_networkx(G, graph_pos)
 		
 		
 		if draw_ports:

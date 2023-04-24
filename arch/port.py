@@ -2,7 +2,7 @@
 Input and output ports.
 """
 
-from enum import Enum     # Req. Python >= 3.4
+from enum import Enum	 # Req. Python >= 3.4
 import sympy.core.symbol
 
 class kind(Enum):
@@ -20,7 +20,7 @@ class kind(Enum):
 # Default symbol values for each kind of port. Put None for no default.
 # TODO: Would be nice to integrate this as a property of each kind as kind.default
 KIND_DEFAULTS = {
-		kind.quantum:[{'modes' : [], 'pos' : [], 'occ' : [], 'amps' :[]}],
+		kind.quantum:0j,
 		kind.optical:0.0,
 		kind.digital:0, 
 		kind.temperature:300.0, 
@@ -64,9 +64,9 @@ def norm(port, port_value):
 	return KIND_NORMALISERS[port.kind](port_value)
 
 class direction(Enum):
-    inp = 0
-    out = 1
-    buffer = 2
+	inp = 0
+	out = 1
+	buffer = 2
 
 
 class var(sympy.core.symbol.Symbol):
@@ -109,7 +109,9 @@ class var(sympy.core.symbol.Symbol):
 
 
 def print_state(state):
-		
+		"""
+		prints classical state in terminal
+		"""
 		assert type(state) == dict
 		assert all({type(k) == var for k in state})
 		

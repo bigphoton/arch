@@ -17,7 +17,7 @@ class Wire(Block):
 	
 	reference_prefix = "TL"
 	
-	def define(self, Eta=1., Ph_v_const=2*pi):
+	def define(self, Eta=1., Ph_v_const=1.):
 		inpe= self.add_port(name='inp', kind=port.kind.voltage, direction=port.direction.inp)
 		eta = self.add_port(name='eta', kind=port.kind.real,    direction=port.direction.inp, default = Eta)
 		ph_v_const = self.add_port(name='ph_v', kind=port.kind.real,    direction=port.direction.inp, default = Ph_v_const)

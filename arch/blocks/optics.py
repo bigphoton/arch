@@ -9,6 +9,20 @@ from sympy import Matrix, sqrt, exp, I, eye
 import arch.port as port
 import numpy as np
 
+class Vacuum(Block):
+	
+	reference_prefix = "V"
+	
+	def define(self, eta=1.0):
+		
+		self.add_port(name='inp', kind=port.kind.optical, direction=port.direction.inp)
+		self.add_port(name='out', kind=port.kind.optical, direction=port.direction.out)
+		
+		r = self.add_port(name='eta', kind=port.kind.real, direction=port.direction.inp, default = eta)
+
+		M = Matrix([[sqrt(r)]])
+		
+		self.add_model(Linear('waveguide '+self.name, block=self, unitary_matrix=M))
 
 class Waveguide(Block):
 	
@@ -17,20 +31,41 @@ class Waveguide(Block):
 	def define(self, eta=1.0):
 		
 		self.add_port(name='inp', kind=port.kind.optical, direction=port.direction.inp)
-		# self.add_state_buffer(name='state', kind=port.kind.optical, direction=port.direction.buffer)
 		self.add_port(name='out', kind=port.kind.optical, direction=port.direction.out)
 		
 		r = self.add_port(name='eta', kind=port.kind.real, direction=port.direction.inp, default = eta)
 
-		M = Matrix([[r]])
+		M = Matrix([[sqrt(r)]])
 		
 		self.add_model(Linear('waveguide '+self.name, block=self, unitary_matrix=M))
-        
+		
 class Beamsplitter(Block):
 	
 	reference_prefix = "BS"
 	
-	def define(self, R=0.5):
+	def define(self, R=0.5, eta=1.0, modenames = []):
+		
+		self.add_port(name='in0', kind=port.kind.optical, direction=port.direction.inp)
+		self.add_port(name='in1', kind=port.kind.optical, direction=port.direction.inp)
+		self.add_port(name='out0', kind=port.kind.optical, direction=port.direction.out)
+		self.add_port(name='out1', kind=port.kind.optical, direction=port.direction.out)
+		r = self.add_port(name='R', kind=port.kind.real, direction=port.direction.inp, default = R)
+
+		M = Matrix([
+				[sqrt(r), I*sqrt(1 - r)],
+				[I*sqrt(1 - r), sqrt(r)] ])
+		
+		self.add_model(Linear('simple R '+self.name, block=self, unitary_matrix=M))
+		
+		
+class WavelengthDivision(Block):
+	"""
+	Component hack to split by frequency modes
+	JCA 2023
+	"""
+	reference_prefix = "WDM"
+	
+	def define(self, R=0.5, eta=1.0, modenames = []):
 		
 		self.add_port(name='in0', kind=port.kind.optical, direction=port.direction.inp)
 		self.add_port(name='in1', kind=port.kind.optical, direction=port.direction.inp)
@@ -47,9 +82,9 @@ class Beamsplitter(Block):
 
 class PhaseShifter(Block):
 	
-	reference_prefix = "P"
+	reference_prefix = "PS"
 	
-	def define(self, phi=0):
+	def define(self, phi=0, eta=1.0):
 		
 		self.add_port(name='inp', kind=port.kind.optical, direction=port.direction.inp)
 		self.add_port(name='out', kind=port.kind.optical, direction=port.direction.out)
