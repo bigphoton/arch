@@ -71,7 +71,7 @@ if __name__=='__main__':
 	
 	components = []
 	
-	vac = Vacuum()
+	vac = Vacuum() # needed too keep the vacuum state in the model!
 
 	laser1  = LaserCW()
 	laser2  = LaserCW()
@@ -310,7 +310,7 @@ if __name__=='__main__':
 	print_state(sim.time_series[-1])	
 	
 	#plot time series
-	sim.plot_timeseries(ports=[sfwm1.out, logic.in0, logic.in1, logic.in2, logic.in3, ps12.out, ps12.phi, ps34.out, ps34.phi, pso.out, pso.phi, odet1.out, odet2.out, odet3.out, odet4.out, odet4.inp, bso_2.out1], style='stack') 
+	sim.plot_timeseries(ports=[sfwm1.out, logic.in0, logic.in1, logic.in2, logic.in3, ps12.out, ps12.phi, ps34.out, ps34.phi, pso.out, pso.phi, odet1.out, odet4.inp], style='stack') 
 
 
 

@@ -160,6 +160,8 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 	continuous-time delays on each block.
 	"""
 	
+	
+	
 	def firesource(self, qstate, source, idx):
 		"""
 		fires quantum photonic photon sources. Currently only two-mode photon pair source and quasi-deterministic single photon source are implemented
@@ -182,6 +184,7 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		qstate = arch.qfunc.cleanzeroes(qstate)
 		
 		return qstate
+		
 		
 				
 		
@@ -208,9 +211,10 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		return qstate
 			
 		
+		
 	def applyloss_old(self, qstate, verbose):
 		"""
-		depreciated method to apply loss - nonunitary without explicit loss modes so does not keep normalisation with vacuum mode
+		depreciated method to apply loss - nonunitary without explicit loss modes so does not keep normalisation!
 		JCA 2023
 		"""
 		lossvecs=[]
@@ -264,6 +268,7 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		
 		return qstate
 		
+		
 			
 		
 	def applydetection(self, qstate, t, timetags, active_dets, photon_det_event_coords, verbose):
@@ -271,10 +276,11 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		applies quantum measurement - applied when photons hit block with "detector" property
 		JCA 2023
 		"""
-		vacwg = 'V0_0'
+		vacwg = 'V0_0' # corresponds to vacuum in the block connectivity - needed too keep the vacuum state in the model!
 		
-		# print('-------- BEGIN DET ---------')
-
+		
+		
+		# what modes are the detected photons in? get their modelabels
 		det_photon_modelabels = [[] for i in range(len(photon_det_event_coords))] 
 		for _,det_coord in enumerate(photon_det_event_coords):	   # get mode labels of detected photons
 			for key in sorted(qstate[det_coord[0]].keys() - ['amp'] ):
@@ -282,61 +288,75 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 
 		det_photon_modelabels_unq = set(tuple(i) for i in det_photon_modelabels) # which photons are the same and being detected?
 
+
+
+		#for those which are the same, get their amplitudes
 		outcome_modes = []
 		outcome_amps = []
 		idx_of_same_parts = []
 		mode_of_same_parts = []
-		for modelabel in det_photon_modelabels_unq:  #for those which are the same, get their amplitudes
+	
+		for modelabel in det_photon_modelabels_unq:  
 			idx_of_same_parts.append([photon_det_event_coords[i][0] for i, x in enumerate(det_photon_modelabels) if x == list(modelabel)])
 			mode_of_same_parts.append([photon_det_event_coords[i][1] for i, x in enumerate(det_photon_modelabels) if x == list(modelabel)])
 			outcome_amps.append( [qstate[i]['amp'] for i in idx_of_same_parts[-1]] )
 			outcome_modes.append(modelabel)
+		
+		
 		
 		#what is the prob of no detection? which bits of state does this correspond to? find prob, 
 		idx_of_no_det  = [ x for x in range(len(qstate)) if x not in list(zip(*photon_det_event_coords))[0] ]
 		no_click_prob  = sum([np.abs(qstate[i]['amp'])**2 for i in idx_of_no_det])
 
 
-		probs = [] # lets compute the probabilities of these events
+		# lets compute the probabilities of these events
+		probs = [] 
 		for ampset in outcome_amps:
 			probs.append (sum([np.abs(x)**2 for x in ampset]))
 		probs.append(no_click_prob)				
 		norm = sum(probs)
-		probs = [prob/norm for prob in probs] #pesky numpy function needs normalised probability distributoin
+		probs = [prob/norm for prob in probs] # numpy function needs normalised probability distributoin
 
 		state_collapse_compononent_idxs = idx_of_same_parts + [idx_of_no_det]
-		state_collapse_mode_idxs = mode_of_same_parts #+ [mode_of_no_det]
+		state_collapse_mode_idxs = mode_of_same_parts 
 		
-		if verbose: #verbose:
+		
+		
+		if verbose == 2: # TODO: implement levels of verbosity
 			print(state_collapse_compononent_idxs)
 			print(state_collapse_mode_idxs)
 			print(outcome_modes)
 			print(probs)
 			print('sum of probs at measurement was:', sum(probs))
 
-		#collapsee state!
+
+
+		#collapse the state!
 		clicks = []
-		detection_result = np.random.choice(len(probs), 1, p=probs)[0]
+		detection_result = np.random.choice(len(probs), 1, p=probs)[0]  # pick a state for collapse using random number
 		if detection_result in range(len(probs) - 1):
 			if verbose:
 				print('KK-KLICK! - A PHOTON WAS DETECTED HERE! result index was: ', detection_result)
-			timetags['modes'].append(outcome_modes[detection_result])
+			timetags['modes'].append(outcome_modes[detection_result])    # append to timtags variable for data storage and ouput
 			timetags['times'].append(t)
 			
-			photno = outcome_modes[detection_result][2]
-			phottran = outcome_modes[detection_result][4]
-			photno_probs = [sp.special.binom(photno,i) * phottran**i * (1 - phottran)**(photno-i) for i in range(photno+1)]
-			loss_result = np.random.choice(len(photno_probs), 1, p=photno_probs)[0]
-			timetags['detno'].append(loss_result)
+			photno = outcome_modes[detection_result][2]   
+			phottran = outcome_modes[detection_result][4]  # all loss is applied at detection stage by keeping track of total loss each photon has experienced, in vec['tran'] 
+			photno_probs = [sp.special.binom(photno,i) * phottran**i * (1 - phottran)**(photno-i) for i in range(photno+1)]  # lost photon distribution is binomial
+			loss_result = np.random.choice(len(photno_probs), 1, p=photno_probs)[0]     # pick with random number
+			timetags['detno'].append(loss_result)  # save data
 
 			clicks.append([outcome_modes[detection_result][5], loss_result])
 
 		if verbose:
 			print('—————————   VACUUM WAS DETECTED HERE! result index was: ', detection_result)
 		
-		qstate = [qstate[i] for i in state_collapse_compononent_idxs[detection_result]]  # does the collapse!
+		qstate = [qstate[i] for i in state_collapse_compononent_idxs[detection_result]]  # does the collapse, keeps only the part of wavefunction that had the detector photon in it
 
-		#delete detected modes
+
+
+
+		# vector states will still have this photon in it, even thought its been detected! delete them!
 		if detection_result < len(probs) - 1:
 			for j,vec in enumerate(qstate):
 				for key in qstate[j].keys() - ['amp']:
@@ -344,8 +364,12 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 					
 			qstate  = [vec for vec in qstate if len(vec['occ']) != 0]  #the above process leaves empty list states, remove!
 		
+		
+		
+		
+		 # add vacuum state back in if empty state
 		if len(qstate) == 0:
-			rs1 = ''.join(random.choice(string.ascii_letters+string.digits) for _ in range(3)) # add vacuum state back in if empty state
+			rs1 = ''.join(random.choice(string.ascii_letters+string.digits) for _ in range(3))
 			qstate.append( {'amp' : np.cdouble(1),
 							'freq' : ['vac_'+rs1],
 							'hg'   : [-1],
@@ -353,6 +377,9 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 							'occ'   : [0],
 							'wg'   : [vacwg],
 							'tran': [0]	   } )
+							
+							
+							
 		
 		#normalise
 		new_norm = sum([np.abs(qstate[i]['amp'])**2 for i in range(len(qstate))]) #renormalise
@@ -360,7 +387,9 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 			vec['amp'] = vec['amp']/np.sqrt(new_norm)
 		qstate = arch.qfunc.cleanzeroes(qstate)
 		
-		#hand back any detection events that still need processing
+		
+		
+		# hand back any detection events that still need processing, then we run this routine again
 		active_dets = []
 		photon_det_event_coords = []
 		# print(qstate)
@@ -376,6 +405,8 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 
 
 		return qstate,timetags,clicks,active_dets,photon_det_event_coords
+	
+	
 	
 	
 	
@@ -395,7 +426,6 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 				for k in range(len(Unp)):
 					crunchmodes.append(comp.name + '_' + str(k))
 
-				# if verbose: print('crunchmodes: ', crunchmodes)
 				qstate = arch.qfunc.qcruncher(qstate, Unp, crunchmodes)   
 				
 		#hack to make WDM split photons TODO: FIXME add model for WDM - make unitarys apply to arbitrary mode index
@@ -412,6 +442,8 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		return qstate
 		
 		
+	
+	
 	
 	def propagate(self, qstate, lconns, verbose):
 		"""
@@ -446,6 +478,8 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 							# print('next component: ',nex_comp)
 							# print('next component input port: ',nex_port)
 							# print('next component input port index: ',out_port_idx)
+						
+						#propagate to next component in connectivity
 						qstate[j]['pos'][i] = 0
 						qstate[j]['wg'][i] = nex_comp_name
 						qstate[j]['tran'][i] = qstate[j]['tran'][i] * curr_comp.eta
@@ -456,6 +490,8 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 
 
 		return qstate
+		
+		
 		
 	
 	def run(self):
@@ -496,9 +532,9 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		for t in ts:
 		
 
-			#######################
-			#### CLASSICAL SIM ####
-			#######################
+					#######################
+					#### CLASSICAL SIM ####
+					#######################
 
 			state = state_history[-1].copy() # State at `t`
 			
@@ -526,11 +562,10 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 
 
 
-
-			
-			#####################
-			#### QUANTUM SIM ####
-			#####################
+					
+					#####################
+					#### QUANTUM SIM ####
+					#####################
 
 			
 			### SOURCES ###
@@ -605,9 +640,6 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 			# propogate state forwarwrd (increment 'pos' variable)
 			qstate = self.propagate(qstate, lconns, self.verbose)
 
-
-
-
 			if self.verbose:
 				print('')
 				print('---- ITERATION COMPLETE, time is: ', t,' ---- qstate printed below ----')
@@ -616,10 +648,7 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 
 
 
-
 		state_history.pop(0)
-		
-		
 		
 		
 		self.time_series = state_history
