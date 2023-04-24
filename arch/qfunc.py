@@ -1,9 +1,3 @@
-"""
-JCA 2022
-
-"""
-
-
 try:
 	import colored_traceback.auto
 except ImportError:
@@ -22,7 +16,12 @@ import string
 import random
 import tabulate
 
+
 def printqstate(qstate):
+	"""
+	Uses tabulate to print the quantum state in a human-readable table
+	JCA 2023
+	"""
 	my_qstate = copy.deepcopy(qstate)
 	for state in my_qstate:
 		amp = state['amp']
@@ -33,10 +32,12 @@ def printqstate(qstate):
 	rows =  [x.values() for x in my_qstate]
 	print(tabulate.tabulate(rows, header))
 
+
+
 def sqz_vac(xi, wgs, pos = [0,0], freq = ['sig', 'idl'], hg = [0, 0],  cutoff = 2, lcutoff = 0):
 	"""
 	Generates a squeezed vacuum state in the dictionary format at position pos
-	JCA 2022
+	JCA 2023
 	"""
 	sqz_state = []
 	for i in range(lcutoff, cutoff):
@@ -68,7 +69,7 @@ def sqz_vac(xi, wgs, pos = [0,0], freq = ['sig', 'idl'], hg = [0, 0],  cutoff = 
 def sqz_vac_hack(xi, wgs, pos = [0,0], freq = ['sig', 'idl'], hg = [0, 0],  cutoff = 2, lcutoff = 0):
 	"""
 	#determinnistic pair photon source for testing / clock tree matching
-	JCA 2022
+	JCA 2023
 	"""
 	sqz_state = []
 	amp = np.cdouble(0.999)
@@ -93,10 +94,12 @@ def sqz_vac_hack(xi, wgs, pos = [0,0], freq = ['sig', 'idl'], hg = [0, 0],  cuto
 
 	return sqz_state
 	
+	
+	
 def sps(amp = 1, wgs = 'wg1', pos = 0, freq = 'idl', hg = 0):
 	"""
-	Generates a squeezed vacuum state in the dictionary format at position pos
-	JCA 2022
+	Generates a idealised quasi-deterministic single photon state with amplitude amp in the dictionary format in component wg at position pos 
+	JCA 2023
 	"""
 	sps_state = []
 	
@@ -116,22 +119,15 @@ def sps(amp = 1, wgs = 'wg1', pos = 0, freq = 'idl', hg = 0):
 					'freq' : [freq],
 					'hg' : [hg],
 					'tran' : [1]})
-					
-
-					
-	# sps_state = [vec for vec in sps_state if not len(vec['occ']) == 0]
-
-
 
 	return sps_state   
 
-def lossU(eta):
-	return np.array([[np.sqrt(eta), np.sqrt(1-eta)], [ np.sqrt(1-eta),np.sqrt(eta)]])
+
 
 def state_checker(qstate):
 	"""
 	Checks that a given state (stored as a dictionary) is well formed.
-	JCA 2022
+	JCA 2023
 	"""
 	for vec in qstate:
 		assert isinstance(vec['amp'], np.complex128), "quantum state must have float amplitude"
@@ -162,10 +158,12 @@ def state_checker(qstate):
 	# print("state passed validity tests")
 
 
+
 def genfockslist_core(kk, nn):
 	""" 
 	Genrates a list of fock states with k excitations in n modes
-	https://stackoverflow.com/questions/7748442/generate-all-possible-lists-of-length-n-that-sum-to-s-in-python
+	from https://stackoverflow.com/questions/7748442/generate-all-possible-lists-of-length-n-that-sum-to-s-in-python
+	JCA 2023
 	"""
 	if kk == 1:
 		yield [nn,]
@@ -174,9 +172,12 @@ def genfockslist_core(kk, nn):
 			for permutation in genfockslist_core(kk - 1, nn - value):
 				yield [value,] + permutation
 			
+			
+			
 def genfockslist(k, n):
 	"""
 	generates fock states with n photons in k modes
+	JCA 2023
 	"""						
 	ans = list(genfockslist_core(k, n))
 	ans.reverse()
@@ -189,6 +190,7 @@ def gendictoutputs(wg_mode_names, ivec, focks, outputpos):
 	"""
 	Generates a list of dictionarys composing a set of fock states for a given set of waveguide modes fock states as list, as given by the above genfockslist
 	uses the above 
+	JCA 2023
 	"""
 	dict = {}
 	occs = []
@@ -268,9 +270,12 @@ def q_simplify (qstate, tol = 1e-10, verbose = False):
 	return qstate_out	 
 
 
+
+
 def cleanzeroes(qstate, tol = 1e-10):
 	"""
-	deletes zero-photon parts of the qstate
+	deletes zero-photon and empty-list parts of qstate
+	JCA 2023
 	"""
 
 	vacwg = qstate[0]['wg'][0]
@@ -307,9 +312,10 @@ def cleanzeroes(qstate, tol = 1e-10):
 	return qstate
 
 
+
 def concat_vec (qstate1, qstate2):
 	"""
-	does tensor-product of two states which have non-interfering components
+	does tensor product of two states which have non-interfering components
 	JCA 2022
 	"""
 	outp = []
@@ -345,14 +351,23 @@ def concat_vec (qstate1, qstate2):
 
 
 def norm(qstate):   
+	"""
+	Computes the norm of the quantum state in our list of dictoinarys format
+	JCA 2023
+	"""
 	return np.sum([np.abs(vec['amp'])**2 for vec in qstate])
+	
+	
 
 def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose = False):
 	"""
 	takes in fock states and a unitary on spatial modes ('wg') and computes the result
+	TODO: this is a beast! refactor this into smaller chunks so that it is legible 
+	JCA 2023
 	"""
 	assert len(U) == len(myU_modes), "Error! Unitary and mode list incorrectly specified"
 	
+	# are we normalised?
 	inp_norm = 0
 	for vec in qstate:
 		inp_norm += np.abs(vec['amp'])**2
@@ -360,8 +375,9 @@ def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose =
 		if inp_norm < 1 - thresh:
 			print("warning, state norm less than {}".format(1 - thresh))
 		print("L-2 norm of input was: {}".format(inp_norm))
-	outputstate = []
-	 #pos
+
+	
+	#check qstate has modes in common with U 
 	vecmodes = []
 	for vec in qstate:
 		vecmodes += vec['wg']
@@ -370,26 +386,31 @@ def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose =
 		print('no modes in common between vec and U')
 		return qstate
 
-	# process each vector (dictionary) in input state one by one
+	# process each vector (dictionary) in input state one by one, later run over all possible output vecs and compute transition amplitude
+	outputstate = []
 	for ivec in qstate:
 		vecwgs = ivec['wg']
 		unqvecwgs = sorted(list(set(ivec['wg']).difference(myU_modes))) # vectors not involved in U
 		intvecs = sorted(list(set(ivec['wg']).intersection(myU_modes))) # vectors not involved in U
+		
 		if verbose:
 			print('\nunqvecs', unqvecwgs)
 			print('intvecs', intvecs)
 		
+		
+		# No modes in common? bypass
 		if intvecs == []:
 			outputstate.append(ivec)
-		# elif len(ivec['occ']) == 1:	   # kep vacuum in state
-			# outputstate.append(ivec)
+
+		# one-dimensional unitary? easy!
 		elif len(U) == 1:
 			outputstate.append(ivec)
 			outputstate[-1]['amp'] = ivec['amp'] * U[0][0]
 		elif sum (ivec['occ']) == 0:
 			outputstate.append(ivec)
 			
-
+			
+		# non-trivial U? find mode overlaps, generate sub U and compute permanents
 		else:	
 			modelabels=[]
 			ridx=0
@@ -417,15 +438,14 @@ def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose =
 				for j in range(len(modelabels)):
 					samemodeq[i][j] = int(modelabels[i] == modelabels[j])
 
-			#networkx, really? just use indices = [i for i, x in enumerate(my_list) if x == "whatever"]
 			samemodeq = np.transpose(np.array(samemodeq))
 			g = nx.from_numpy_matrix(samemodeq)
 			g_connex = nx.connected_components(g)	
 			g_connex_compnts = [list(c) for c in sorted(nx.connected_components(g), key=len, reverse=True)]
 			if verbose:
 				print('\nconnected components: ',g_connex_compnts)	
-			# connected components of state will interfere. There may be many independent ones. These are handled independently and joined together later with concat_vec, which is like a tensor product
-			
+			# connected components of state will interfere. There may be many independent ones. These are handled independently and joined together later with concat_vec() (tensor product)
+			# computes permanents of many small (typically 2x2) matrices, rather than permanents of sparse, larger matrices.
 
 			cc_states = [[] for ccomp in g_connex_compnts]
 			for cc_states_idx, ccomp in enumerate(g_connex_compnts) :
@@ -438,7 +458,7 @@ def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose =
 				focks = genfockslist(len(myU_modes), occinUmodes)
 				outputfocks = gendictoutputs(myU_modes, ivec, focks, -5) # put them in dictionary format
 
-				# keep track of number of photons in this cnnected component
+				# keep track of number of photons in this connected component
 				subU_iidx = []
 				i_occs = [] 
 				for cc in ccomp:   
@@ -446,6 +466,7 @@ def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose =
 					for i in range(ivec['occ'][int_idx[cc]] ):
 						subU_iidx.append(myU_modes.index(ivec['wg'][int_idx[cc]])) 
 
+				# compute transition amplitude for each output possible output vector
 				for ovec in outputfocks:
 					subU_oidx = []
 					for idx,wgs in enumerate(ovec['wg']):
@@ -453,7 +474,7 @@ def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose =
 							subU_oidx.append(myU_modes.index(wgs))
 
 
-					subU = U[np.ix_(subU_oidx,subU_iidx)]
+					subU = U[np.ix_(subU_oidx,subU_iidx)] # find submatrix
 					if verbose:
 						print("input fock: ",ivec)
 						print("activemodelabels", activemodelabels,  modelabels[list(ccomp)[0]])

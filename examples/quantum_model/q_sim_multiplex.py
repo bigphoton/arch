@@ -37,7 +37,6 @@ import copy
 from math import pi, sin
 import csv
 
-print('1')
 
 	# Functions for producing time series
 def constant(v):
@@ -66,10 +65,10 @@ def pulsgaus(amp, reprate, sigma, cut):
 if __name__=='__main__':
 
 	
-	print ("Welcome to the new, NEW, _NEW_ arch")
+	print ("Welcome to the q_systems arch!")
+	
 	#source params
 	
-	wg_loss = 1
 	components = []
 	
 	vac = Vacuum()
@@ -96,12 +95,6 @@ if __name__=='__main__':
 	
 	hwire1 = Wire()
 	hwire2 = Wire()
-	
-	# thresh = 0.05
-	# c1 = Comparator( threshold=thresh, hysteresis=0.01)
-	# c2 = Comparator( threshold=thresh, hysteresis=0.01)
-	# c3 = Comparator( threshold=thresh, hysteresis=0.01)
-	# c4 = Comparator( threshold=thresh, hysteresis=0.01)
 	
 	logic = FourChLogPlex(vout = np.pi)
 
@@ -283,8 +276,8 @@ if __name__=='__main__':
 	logic.hyst =0.01
 	
 	t_start = 0 
-	t_stop = 8 * reprate
-	t_step = 5
+	t_stop = 1. * reprate
+	t_step = 1
 
 	print("Setting up simulator...")
 	sim = QuantumDynamicalSimulator(
@@ -314,12 +307,10 @@ if __name__=='__main__':
 
 	print(f"Computed {len(sim.times)} time steps.")
 	print("Final state is:")
-	# print_state(sim.time_series[-1])
-
 	print_state(sim.time_series[-1])	
 	
+	#plot time series
 	sim.plot_timeseries(ports=[sfwm1.out, logic.in0, logic.in1, logic.in2, logic.in3, ps12.out, ps12.phi, ps34.out, ps34.phi, pso.out, pso.phi, odet1.out, odet2.out, odet3.out, odet4.out, odet4.inp, bso_2.out1], style='stack') 
-	# sim.plot_timeseries(ports=[sfwm1.out, wdm1.out1, wg00.out, bs12_1.out0, ps12.out, bs12_2.out0, bso_1.out0, pso.out, bso_2.out1], style='stack') 
 
 
 
@@ -333,7 +324,10 @@ if __name__=='__main__':
 	t = time.localtime()
 	current_time = time.strftime("%H-%M-%S", t)
 	filename_globaltags = 'timetags__T=' + str(t_stop) + '__dt=' + str(t_step) + '__R=' + str(reprate)
-	save_path = 'C:/onedrive/OneDrive - University of Bristol/quantum/projects/arch_project/data/4ch_multiplex/' + str(datetime.date.today()) + '__' +  current_time 
+	
+	
+	dir_path = os.path.dirname( os.path.dirname( os.path.dirname( os.path.dirname(os.path.realpath(__file__)))))
+	save_path = dir_path + '/arch_raw-output-data/' + str(datetime.date.today()) + '__' +  current_time 
 	os.makedirs(save_path)
 	
 	with open(os.path.join(save_path,filename_globaltags) + '___global.csv', 'w', encoding='UTF8', newline='') as f:

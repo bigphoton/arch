@@ -161,6 +161,11 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 	"""
 	
 	def firesource(self, qstate, source, idx):
+		"""
+		fires quantum photonic photon sources. Currently only two-mode photon pair source and quasi-deterministic single photon source are implemented
+		should take source variables from DynamicalSimulator
+		JCA 20223
+		"""
 		source_name = source.name + '_' + '0'#str(idx)
 		if source.reference_prefix == 'SV':
 			sourcestate = arch.qfunc.sqz_vac_hack(xi = source.xi, 
@@ -174,7 +179,6 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		if source.reference_prefix == 'SPS':
 			sourcestate = arch.qfunc.sps(amp = source.amp, wgs = source_name, pos = source.pos, freq = source.freq, hg = source.hg)	  
 		qstate = arch.qfunc.concat_vec(qstate, sourcestate)
-		# arch.qfunc.printqstate(qstate)
 		qstate = arch.qfunc.cleanzeroes(qstate)
 		
 		return qstate
@@ -394,7 +398,7 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 				# if verbose: print('crunchmodes: ', crunchmodes)
 				qstate = arch.qfunc.qcruncher(qstate, Unp, crunchmodes)   
 				
-		#hack to make WDM split photons
+		#hack to make WDM split photons TODO: FIXME add model for WDM - make unitarys apply to arbitrary mode index
 		for j,vec in enumerate(qstate):
 			for i,pos in enumerate(qstate[j]['pos']):
 				if qstate[j]['wg'][i][0] != 'L':
@@ -417,7 +421,7 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 				  
 		for j,vec in enumerate(qstate):
 			for i,pos in enumerate(qstate[j]['pos']):
-			
+				# 'wg' takes form COMPONENTx_y where x is block index, y is mode (output port) index 
 				curr_comp_name, curr_comp_idx = qstate[j]['wg'][i].split('_') # which component are we in?
 				if pos >= 0: 
 					curr_comp_idx = int(curr_comp_idx)
@@ -446,11 +450,11 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 						qstate[j]['wg'][i] = nex_comp_name
 						qstate[j]['tran'][i] = qstate[j]['tran'][i] * curr_comp.eta
 
+
 		for vec in qstate: # incrememnt 'pos'
 			vec['pos'] = [pos + self.t_step if vec['occ'][idx] > 0 else -1 for idx,pos in enumerate(vec['pos']) ]
 
 
-			
 		return qstate
 		
 	
@@ -487,7 +491,10 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		timetags = {'times' : [], 'modes' : [], 'detno' : [] }
 		
 		deadcounters = {det.name : 0. for det in self.q_dets}
+		
+		
 		for t in ts:
+		
 
 			#######################
 			#### CLASSICAL SIM ####
@@ -517,6 +524,9 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 			# Store state in time series
 			state_history.append(state)
 
+
+
+
 			
 			#####################
 			#### QUANTUM SIM ####
@@ -524,12 +534,11 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 
 			
 			### SOURCES ###
+			
 			for idx,source in enumerate(self.q_sources):
-				if state[source.out] > 1.4:
-				# if math.isclose(t % source.reprate , 0):	
+				if state[source.out] > 1.4: # this is a hack - need to implement model for quantum sources
 					qstate = self.firesource(qstate, source, idx)
-			# remove higher photon numbers beyond cutoff
-			qstate = list(filter(lambda x: np.sum(x['occ']) <= self.photon_no_cutoff, qstate))
+			qstate = list(filter(lambda x: np.sum(x['occ']) <= self.photon_no_cutoff, qstate)) # remove higher photon numbers beyond cutoff
 				
 
 			
@@ -561,9 +570,9 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 							active_dets.append(curr_comp)	# detectors that might fire - measurements to perform 
 							# print('photon hit detector at vec component ', [j,i])
 						else:
-							crunch_comps.add(curr_comp)	# components to be churned through in applying unitaries
+							crunch_comps.add(curr_comp)	# where are the photons? components to be churned through in applying unitaries
 							
-			#apply dark counts -> needs real units	
+			#apply dark counts TODO: needs real units, and to be method of the detector block
 			this_tick_clicks = []			
 			pdarkcount = 0.001
 			for det in self.q_dets:
@@ -586,22 +595,32 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 					state[clickdet.click_in] = click[1]
 					deadcounters[clickdet.name] = 0
 					
+					
+					
 			
+			### PROPAGATE ###
+			
+			# apply unitaries of components where there are photons
 			qstate = self.applyunitaries(qstate, crunch_comps, state, self.verbose)
-
+			# propogate state forwarwrd (increment 'pos' variable)
 			qstate = self.propagate(qstate, lconns, self.verbose)
+
+
+
 
 			if self.verbose:
 				print('')
-				print('-------------------------------------------------------------')
-				print('--------------ITERATION COMPLETE, time is: ', t,'-------------')
-				print('----------------	 state printed below	 ----------------')
+				print('---- ITERATION COMPLETE, time is: ', t,' ---- qstate printed below ----')
+				print('')
 				arch.qfunc.printqstate(qstate)   
 
-  
+
 
 
 		state_history.pop(0)
+		
+		
+		
 		
 		self.time_series = state_history
 		self.times = ts

@@ -12,12 +12,12 @@ from sympy import sqrt, exp, I, asin, acos, cos
 class BasicSPD(Block):
 
 	"""
-	Basic detector block with simple efficiency function. User must choose a model of 
-	simulation from: 'monte_carlo', 'linear', 'full_quantum'
+	Basic detector block with simple efficiency function. 
+	Currently monte-carlo style detection is implemented, clicks forwarded to timetag data output
 
 
-	Desired class attributes: efficiency, dead time, dark counts, jitter,
-	spectral range, PNR
+	Desired class attributes: efficiency, dead time, dark counts, jitter, bandwidth
+	spectral range
 	"""
 
 	reference_prefix="PD"
@@ -41,12 +41,11 @@ class BasicSPD(Block):
 class PhotoDiode(Block):
 
 	"""
-	Basic detector block with simple efficiency function. User must choose a model of 
-	simulation from: 'monte_carlo', 'linear', 'full_quantum'
+	Basic detector block with simple efficiency function. 
 
 
-	Desired class attributes: efficiency, dead time, dark counts, jitter,
-	spectral range, PNR
+	Desired class attributes: efficiency, bandwidthm, noise
+	spectral range
 	"""
 
 	reference_prefix="PM"

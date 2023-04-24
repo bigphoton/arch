@@ -59,7 +59,10 @@ class Beamsplitter(Block):
 		
 		
 class WavelengthDivision(Block):
-	
+	"""
+	Component hack to split by frequency modes
+	JCA 2023
+	"""
 	reference_prefix = "WDM"
 	
 	def define(self, R=0.5, eta=1.0, modenames = []):

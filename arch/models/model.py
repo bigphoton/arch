@@ -178,6 +178,9 @@ class QuantumModel(Model):
 	General quantum model.
 
 	Todo: global quantum model, handles symbolic state vectors as dictionary, propogates in time
+	
+	This can be refactored from methods of simulation object - current implementation is un-arch-like
+	JCA 2023
 	"""
 
 
@@ -501,7 +504,7 @@ class DetectorModel(SymbolicModel):
 
 class TransmissionLineModel(SymbolicModel):
 	"""
-	Model for detectors.
+	placeholder model for transmission line
 	"""
 	
 	def define(self, **kwargs):
@@ -515,7 +518,7 @@ class TransmissionLineModel(SymbolicModel):
 		
 class AmplifierModel(SymbolicModel):
 	"""
-	Model for detectors.
+	placeholder model for an amplifier.
 	"""
 	
 	def define(self, **kwargs):
@@ -529,7 +532,8 @@ class AmplifierModel(SymbolicModel):
 		
 class DCQontrolModel(SymbolicModel):
 	"""
-	Model for DC voltage provided by Qontrol (TM) drivers.
+	Model for DC voltage provided by Qontrol (TM) drivers. Essentially placeholder (no physics) 
+	JCA 2022
 	"""
 	
 	def define(self, **kwargs):
@@ -539,9 +543,12 @@ class DCQontrolModel(SymbolicModel):
 		
 		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]
 		
+		
+		
 class FourChLogPlexModel(SymbolicModel):
 	"""
-	Model for detectors.
+	Model for four-channel multiplexing logic
+	JCA 2023
 	"""
 	
 	def define(self, **kwargs):

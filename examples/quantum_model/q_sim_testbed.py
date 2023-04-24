@@ -35,7 +35,6 @@ import copy
 from math import pi, sin
 import arch.qfunc
 
-print('1')
 
 	# Functions for producing time series
 def constant(v):
@@ -61,74 +60,14 @@ def pulsgaus(v, reprate, sigma, cut):
 if __name__=='__main__':
 
    
-	if False:
-		alpha = np.cdouble(1j)/np.sqrt(2)
-		
-		sqzstate1 = arch.qfunc.sqz_vac(0.1, ['wg0','wg1'], pos = [0,0], freq = ['sig', 'idl'], cutoff = 3, lcutoff = 0)
-		sqzstate2 = arch.qfunc.sqz_vac(0.1, ['wg3','wg2'], pos = [0,0], freq = ['sig', 'idl'], cutoff = 3, lcutoff = 0)
-		
-		print(np.array(sqzstate1))   
-		print(np.array(sqzstate2))   
-		sqzstate = arch.qfunc.concat_vec(sqzstate1,sqzstate2)
-		arch.qfunc.printqstate(sqzstate)
 
-		# myqstate = [#{'amp': alpha, 'wg' : ['wg_0','wg_2','wg_3'], 'pos' : [1,1,1], 'occ' : [1,1,1], 'freq' : ['idl', 'idl', 'idl'], 'hg' : ['1','1','1']}
-					# {'amp': alpha,  'wg' : ['wg0','wg1','wg0','wg3','wg0','wg1'], 'pos' : [1,1,1,1,1,1], 'occ' : [1,1,1,1,1,1], 'freq' : ['idl','idl', 'sig', 'idl', 'idl', 'idl'], 'hg' : [1,1,1,1,0,0]},
-					# {'amp': alpha,  'wg' : ['wg0','wg2','wg3'], 'pos' : [1,1,1], 'occ' : [2,1,1], 'freq' : ['idl', 'idl', 'idl'], 'hg' : [1,1,1]}
-						# ]
-
-		myqstate = sqzstate
-		arch.qfunc.state_checker(myqstate)
-		myqstate = arch.qfunc.cleanzeroes(myqstate)
-		myqstate = arch.qfunc.q_simplify(myqstate)
-		
-
-		print('cleaned state was:\n')
-		arch.qfunc.printqstate(myqstate)
-		
-		
-		matrefl = 1/2. 
-		myU_1 = np.array([[np.sqrt(matrefl), 1j*np.sqrt(1 - matrefl)],
-						   [1j*np.sqrt(1 - matrefl), np.sqrt(matrefl)] ])
-
-		scp.linalg.fractional_matrix_power(myU_1, 1/10)
-
-		mymodes_1 = ['wg0', 'wg1'] 
-		
-		myqstate = arch.qfunc.qcruncher(myqstate, myU_1, mymodes_1, verbose = True)		
-		print('\n\ncrunch successful')
-		arch.qfunc.printqstate(myqstate)
-		myqstate = arch.qfunc.qcruncher(myqstate, myU_1, mymodes_1, verbose = False)
-
-		for kk in range(len(myqstate)):
-			# print('\nbeforesort: ',qstate[kk])
-			myqstate[kk] = dict(sorted(myqstate[kk].items(), reverse = False))
-
-		print('\n\ncrunch successful')
-		arch.qfunc.state_checker(myqstate)
-		arch.qfunc.printqstate(myqstate)  
-
-
-
-		outp_norm = 0
-		for vec in myqstate:
-			outp_norm += np.abs(vec['amp'])**2
-		print("L-2 norm of final state was: {}".format(outp_norm),"\n")
-
-		quit()
-
-		
 	
-	
-	
-	print ("Welcome to the new, NEW, _NEW_ arch")
+	print ("Welcome to the q_systems arch!")
 	#source params
 	
-	wg_loss = 1
 	components = []
 	laser = LaserCW()
 	vac  = Vacuum()
-	sfwm0 = BasicPhotonPairSource()
 	sps0 = BasicSinglePhotonSource()
 	sps1 = BasicSinglePhotonSource()
 	wg0 = Waveguide(eta = wg_loss)
@@ -152,13 +91,11 @@ if __name__=='__main__':
 	wire1 = Wire()
 	qtrl = Qontrol(nch=1)
 
-	# at c, 1 ps is ~70 microns in silicon
 	
 	vac.delay = 10.
 	laser.delay = 10.
 	wg0.delay = 10.
 	wg0_0.delay = 10.
-	sfwm0.delay = 10.
 	sps0.delay = 10.
 	sps1.delay = 10.
 	wg1.delay = 10.
@@ -243,7 +180,6 @@ if __name__=='__main__':
 						(det0.out,  wire0.inp),
 						(det1.out,  wire1.inp),
 						(wire0.out, ps0.phi),
-						# (wire1.out, ps1.phi),
 						
 						(qtrl.out_0, ps1.phi)
 						] )
@@ -271,14 +207,6 @@ if __name__=='__main__':
 	det1.vout = 0.1
 
 	reprate  = 30
-	sfwm0.reprate = reprate
-	sfwm0.xi = 0.3
-	sfwm0.lcutoff = 0
-	sfwm0.cutoff = 2
-	sfwm0.pos = [0,0]
-	sfwm0.freq = ['s', 'i']
-	sfwm0.hg = [0,0]
-	print(sfwm0.wgs)
 	
 	sps0.reprate = reprate
 	sps0.pos = 0
@@ -302,7 +230,7 @@ if __name__=='__main__':
 					connectivity = connections,
 					t_start = 0,
 					t_stop = 300, 
-					t_step = 5,
+					t_step = 1,
 					verbose = False,
 					in_time_funcs={
 						laser.P: pulsgaus(1., reprate, 2, 20)
@@ -318,7 +246,7 @@ if __name__=='__main__':
 
 	print(f"Computed {len(sim.times)} time steps.")
 	print("Final state is:")
-	# print_state(sim.time_series[-1])
+	print_state(sim.time_series[-1])
 
 	sim.plot_timeseries(ports=[laser.out, ps0.phi, ps1.phi, wg6.out, wg7.out, det0.out, det1.out], style='stack')
 

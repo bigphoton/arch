@@ -109,7 +109,9 @@ class var(sympy.core.symbol.Symbol):
 
 
 def print_state(state):
-		
+		"""
+		prints classical state in terminal
+		"""
 		assert type(state) == dict
 		assert all({type(k) == var for k in state})
 		

@@ -13,7 +13,9 @@ import arch.qfunc
 
 
 class LaserCW(Block):
-	
+	"""
+	A laser component. Connect to other optics for classical values. Can be driven in time with in_time_funcs
+	"""
 	reference_prefix = "CW"
 	
 	def define(self, Power = 1.0, Wavelength= 2000):
@@ -29,10 +31,9 @@ class LaserCW(Block):
 
 
 class BasicPhotonPairSource(Block):
-
-
 	"""	 
 	A simple squeezed vacuum source
+	JCA 2023
 	"""
 
 	reference_prefix="SV"
@@ -61,12 +62,9 @@ class BasicPhotonPairSource(Block):
 
 
 class BasicSinglePhotonSource(Block):
-
 	"""
-	A simple button click pair photon source.
-	Digital button click input, two single photon output channels
-
-	Desired class attributes: 
+	A simple single photon source
+	JCA 2023
 	"""
 
 	reference_prefix = "SPS"
