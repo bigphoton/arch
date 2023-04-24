@@ -10,7 +10,6 @@ import numpy as np
 import math
 
 
-
 class Model(abc.ABC):
 	"""
 	Model base class. One of `block` or `ports` must be defined.
@@ -424,14 +423,14 @@ class Linear(SymbolicModel):
 						Um.row_del(np)
 						Um.col_del(np)
 				
-	# 				print("Um:")
-	# 				sympy.pprint(Um)
+	#				 print("Um:")
+	#				 sympy.pprint(Um)
 				
 					# Accumulate
 					U = U * Um
 			
-	# 			print("U:")
-	# 			sympy.pprint(U)
+	#			 print("U:")
+	#			 sympy.pprint(U)
 			
 				return Linear(name=name, ports=ex_ports, unitary_matrix=U)
 		
@@ -499,6 +498,7 @@ class DetectorModel(SymbolicModel):
 		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]
 
 
+
 class TransmissionLineModel(SymbolicModel):
 	"""
 	Model for detectors.
@@ -511,9 +511,22 @@ class TransmissionLineModel(SymbolicModel):
 		
 		self.in_voltage_ports = [p for p in self.in_ports if p.kind == port.kind.voltage]
 		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]
-        
-        
-        
+		
+		
+class AmplifierModel(SymbolicModel):
+	"""
+	Model for detectors.
+	"""
+	
+	def define(self, **kwargs):
+		super().define(**kwargs)
+		
+		self.properties.add("amplifier")
+		
+		self.in_voltage_ports = [p for p in self.in_ports if p.kind == port.kind.voltage]
+		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]
+		
+		
 class DCQontrolModel(SymbolicModel):
 	"""
 	Model for DC voltage provided by Qontrol (TM) drivers.
@@ -525,3 +538,34 @@ class DCQontrolModel(SymbolicModel):
 		self.properties.add("qontrol")
 		
 		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]
+		
+class FourChLogPlexModel(SymbolicModel):
+	"""
+	Model for detectors.
+	"""
+	
+	def define(self, **kwargs):
+		super().define(**kwargs)
+		
+		self.properties.add("logic")
+		
+		self.in_voltage_ports = [p for p in self.in_ports if p.kind == port.kind.voltage]
+		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]
+		
+		
+		plexU = Matrix([[0,1,1,0],[0,0,1,1]])
+
+		inportsum = sum(self.in_voltage_ports)
+		
+		decide1 = sympy.Piecewise((1, 0.5 < inportsum), (0, True))
+		decide2 = sympy.Piecewise((1, 1.5 > inportsum), (0, True))
+
+		if decide1 and decide2:
+			self.out_exprs = {op:oe for op,oe in zip(self.out_voltage_ports, np.pi*plexU*Matrix(self.in_voltage_ports))  }
+		else:
+			self.out_exprs = {op:oe for op,oe in zip(self.out_voltage_ports, 0.)   }
+				
+				
+		# self.out_exprs = {op:oe for op,oe in zip(self.out_voltage_ports, plexU*Matrix(self.in_voltage_ports))  }
+		# self.out_exprs = {op:oe for op,oe in 
+				# zip(self.out_optical_ports, self.U * Matrix(self.in_optical_ports) ) }

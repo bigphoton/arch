@@ -3,4 +3,5 @@ thewalrus
 networkx
 scipy
 matplotlib
-sympy=1.7.1
+tabulate
+sympy==1.7.1
