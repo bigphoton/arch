@@ -64,7 +64,7 @@ if __name__=='__main__':
 	
 	print ("Welcome to the q_systems arch!")
 	#source params
-	
+	wg_loss=0.99
 	components = []
 	laser = LaserCW()
 	vac  = Vacuum()
@@ -120,7 +120,6 @@ if __name__=='__main__':
 	laser.eta = 9.9e-1
 	wg0.eta = 9.9e-1
 	wg0_0.eta = 9.9e-1
-	sfwm0.eta = 9.9e-1
 	sps0.eta = 9.9e-1
 	sps1.eta = 9.9e-1
 	wg1_0.eta = 9.9e-1

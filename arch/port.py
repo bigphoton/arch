@@ -120,7 +120,7 @@ def print_state(state):
 		
 		l.sort(key=(lambda e : (e['block name'],e['kind'],e['port name'])))
 		
-		l = ["{:10s}:  {}".format(str(e['port']),e['value']) for e in l]
+		l = ["{:20s}:  {}".format(str(e['port']),e['value']) for e in l]
 		s = ",\n ".join(l)
 		s = "{"+s+"}"
 		

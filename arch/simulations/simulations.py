@@ -182,7 +182,6 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 			sourcestate = arch.qfunc.sps(amp = source.amp, wgs = source_name, pos = source.pos, freq = source.freq, hg = source.hg)	  
 		qstate = arch.qfunc.concat_vec(qstate, sourcestate)
 		qstate = arch.qfunc.cleanzeroes(qstate)
-		
 		return qstate
 		
 		
@@ -337,13 +336,13 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		if detection_result in range(len(probs) - 1):
 			if verbose:
 				print('KK-KLICK! - A PHOTON WAS DETECTED HERE! result index was: ', detection_result)
-			timetags['modes'].append(outcome_modes[detection_result])    # append to timtags variable for data storage and ouput
+			timetags['modes'].append(outcome_modes[detection_result])	# append to timtags variable for data storage and ouput
 			timetags['times'].append(t)
 			
 			photno = outcome_modes[detection_result][2]   
 			phottran = outcome_modes[detection_result][4]  # all loss is applied at detection stage by keeping track of total loss each photon has experienced, in vec['tran'] 
 			photno_probs = [sp.special.binom(photno,i) * phottran**i * (1 - phottran)**(photno-i) for i in range(photno+1)]  # lost photon distribution is binomial
-			loss_result = np.random.choice(len(photno_probs), 1, p=photno_probs)[0]     # pick with random number
+			loss_result = np.random.choice(len(photno_probs), 1, p=photno_probs)[0]	 # pick with random number
 			timetags['detno'].append(loss_result)  # save data
 
 			clicks.append([outcome_modes[detection_result][5], loss_result])
@@ -461,7 +460,7 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 				
 				if curr_comp != []:
 					curr_comp = curr_comp[0]
-					endcompq = math.isclose(qstate[j]['pos'][i] , curr_comp.delay)		
+					endcompq = math.isclose(qstate[j]['pos'][i] , curr_comp.delay, abs_tol = 0.1*self.t_step)		
 				   
 					if endcompq:# we have reached the end of a component
 						# what output port are we connected to? we must find it in conns
@@ -512,7 +511,7 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		port_delay_ints |= {p:round(self.get_delay_func(b)/self.t_step) for b in self.blocks for p in b.out_ports}
 		
 		def delayed_port_value(port):
-			d = port_delay_ints[port]
+			d = port_delay_ints[port] -1
 			t = len(state_history)
 			if d < t:
 				return state_history[-d][port]
@@ -521,7 +520,8 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 			
 		from arch.port import print_state
 		
-		qstate = arch.qfunc.sqz_vac(0.001, ['V0_0','V0_0'], pos = [-1,-1], freq = ['s', 'i'], hg = [0, 0],  cutoff = 1, lcutoff = 0)
+		qstate = arch.qfunc.sqz_vac(0.001, ['V0_0','V0_0'], pos = [-1,-1], 
+															freq = ['s', 'i'], hg = [0, 0],  cutoff = 1, lcutoff = 0)
 		# print(qstate)
 		# Step through times
 		timetags = {'times' : [], 'modes' : [], 'detno' : [] }
@@ -557,8 +557,6 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 			# Propagate values along connectivity
 			state |= {pi:delayed_port_value(po) for po,pi in con if po in state}
 			
-			# Store state in time series
-			state_history.append(state)
 
 
 
@@ -566,17 +564,24 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 					#####################
 					#### QUANTUM SIM ####
 					#####################
-
-			
+					
+					
 			### SOURCES ###
-			
+				
 			for idx,source in enumerate(self.q_sources):
 				if state[source.out] > 1.4: # this is a hack - need to implement model for quantum sources
 					qstate = self.firesource(qstate, source, idx)
+					print("SOURCE FIRED at time t: ", t)
 			qstate = list(filter(lambda x: np.sum(x['occ']) <= self.photon_no_cutoff, qstate)) # remove higher photon numbers beyond cutoff
 				
+				
+			### PROPAGATE ###
+			qstate = self.propagate(qstate, lconns, self.verbose)
+			
+			
 
 			
+
 			### APPLY DETECTION ###
 			
 			# reset dead detectors if deadcounter > deadtime		  
@@ -585,7 +590,8 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 				if deadcounters[det.name] > det.deadtime:
 					state[det.click_in] = 0
 					
-					
+
+		
 			#do any detectors have photons hitting them?
 			# which components are we in? ###
 			crunch_comps = set()  # used in applying unitaries
@@ -597,7 +603,8 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 				for i,pos in enumerate(qstate[j]['pos']):
 					if qstate[j]['wg'][i][0] != 'L':
 					
-						curr_comp_name, curr_comp_idx = qstate[j]['wg'][i].split('_') # which component are we in? take from qstate
+						curr_comp_name, curr_comp_idx = qstate[j]['wg'][i].split('_') # which component are we in? 
+																					  # take from qstate
 						curr_comp = [comp for comp in self.blocks if comp.name == curr_comp_name][0] # find comp in blocks
 						
 						if 'detector' in curr_comp.model.properties:
@@ -605,11 +612,12 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 							active_dets.append(curr_comp)	# detectors that might fire - measurements to perform 
 							# print('photon hit detector at vec component ', [j,i])
 						else:
-							crunch_comps.add(curr_comp)	# where are the photons? components to be churned through in applying unitaries
+							crunch_comps.add(curr_comp)	# where are the photons? components to be churned through in 
+														# applying unitaries
 							
 			#apply dark counts TODO: needs real units, and to be method of the detector block
 			this_tick_clicks = []			
-			pdarkcount = 0.001
+			pdarkcount = 0.000001
 			for det in self.q_dets:
 				if pdarkcount > np.random.random(1):
 					dclick = [(det.name +'_1'), 1]
@@ -619,7 +627,8 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 					this_tick_clicks.append(dclick)
 
 			while active_dets != []:
-				qstate, timetags, clicks, active_dets, photon_det_event_coords = self.applydetection(qstate, t, timetags, active_dets, photon_det_event_coords, self.verbose)
+				qstate, timetags, clicks, active_dets, photon_det_event_coords = self.applydetection(qstate, t, 
+				timetags, active_dets, photon_det_event_coords, self.verbose)
 				this_tick_clicks = this_tick_clicks + clicks
 			
 			#which detectors clicked? forward this to classical state
@@ -627,26 +636,40 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 				for click in this_tick_clicks:
 					this_click = click[0].split('_')[0] 
 					clickdet  =  [ det for det in self.q_dets if det.name == this_click ][0]
+					# print(clickdet.click_in)
+					# print(state[clickdet.click_in])
 					state[clickdet.click_in] = click[1]
+					# print(state[clickdet.click_in])
 					deadcounters[clickdet.name] = 0
 					
 					
 					
+
+				
+				
 			
-			### PROPAGATE ###
 			
-			# apply unitaries of components where there are photons
-			qstate = self.applyunitaries(qstate, crunch_comps, state, self.verbose)
-			# propogate state forwarwrd (increment 'pos' variable)
-			qstate = self.propagate(qstate, lconns, self.verbose)
+			
+
+				
 
 			if self.verbose:
 				print('')
 				print('---- ITERATION COMPLETE, time is: ', t,' ---- qstate printed below ----')
 				print('')
-				arch.qfunc.printqstate(qstate)   
+				arch.qfunc.printqstate(qstate)  
+			# apply unitaries of components where there are photons
+			qstate = self.applyunitaries(qstate, crunch_comps, state, self.verbose)
+			# propogate qstate forwarrd (increment 'pos' variable)
+ 
+			
+			
+			
+			# Store classical state in time series
+			state_history.append(state)
 
-
+	
+			
 
 		state_history.pop(0)
 		

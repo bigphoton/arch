@@ -210,30 +210,16 @@ if __name__=='__main__':
 
 
 	for comp in connections.blocks:
-		comp.delay = 10
-		comp.eta = 0.96
-	hwire1.delay = 5
-	hwire2.delay = 40
+		comp.delay = 20
+		comp.eta = 0.999
 	
 	
 	bss = [bs12_1, bs12_2, bs34_1, bs34_2, bso_1, bso_2]
 	for bs in bss:
 		bs.R = 1/2
-		bs.delay = 5
+
 		
-	pso.delay = 5
-	ps12.delay = 5
-	ps34.delay = 5
-	
-	wg12.delay = 5
-	wg34.delay = 5
-	wgo.delay = 5
-				
-	inbuilt_delay = 45
-	wg00.delay = inbuilt_delay
-	wg01.delay = inbuilt_delay
-	wg10.delay = inbuilt_delay
-	wg11.delay = inbuilt_delay
+
 		
 		
 		
@@ -248,7 +234,7 @@ if __name__=='__main__':
 		if hasattr(b.model, 'U'):
 			print(b.name,"   ",b.model,"   ",b.model.U,"   ",b.delay)
 
-	connections.draw(draw_ports=False)
+	# connections.draw(draw_ports=False)
 	print('\n')	
 	
 	
@@ -258,7 +244,7 @@ if __name__=='__main__':
 	qdets = [hdet1, hdet2, hdet3, hdet4, odet1, odet2, odet3, odet4]
 
 	for source in qsources:
-		reprate  = 145
+		reprate  = 240
 		source.reprate = reprate
 		source.xi = 0.18
 		source.lcutoff = 0
@@ -276,7 +262,7 @@ if __name__=='__main__':
 	logic.hyst =0.01
 	
 	t_start = 0 
-	t_stop = 1.4 * reprate
+	t_stop = 1.05 * reprate
 	t_step = 5
 
 	print("Setting up simulator...")
@@ -288,7 +274,7 @@ if __name__=='__main__':
 					connectivity = connections,
 					t_start = t_start,
 					t_stop = t_stop, 
-					t_step = t_step,
+					t_step = t_step, 
 					verbose = True,
 					in_time_funcs = {
 						laser1.P: pulsgaus(10., reprate, 2, 20),
@@ -309,15 +295,27 @@ if __name__=='__main__':
 	print("Final state is:")
 	print_state(sim.time_series[-1])	
 	
-	#plot time series
-	sim.plot_timeseries(ports=[sfwm1.out, logic.in0, logic.in1, logic.in2, logic.in3, ps12.out, ps12.phi, ps34.out, ps34.phi, pso.out, pso.phi, odet3.inp, odet4.out], style='stack') 
+	#plot time series	
+	sim.plot_timeseries(ports=[sfwm1.inp,sfwm1.out, 
+								wdm1.in0,wdm1.out1,
+								wg00.inp,wg00.out, 
+								bs12_1.in0, bs12_1.out1, 
+								wg12.inp, wg12.out, 
+								bs12_2.in0,bs12_2.out1, 
+								wg000.inp,wg000.out,
+								bso_1.in0, bso_1.out1, 
+								pso.inp, pso.out, 
+								bso_2.in0, bso_2.out1, 
+								odet3.inp,odet3.out], style='stack') 
+
+	sim.plot_timeseries(ports=[sfwm1.inp,sfwm1.out, odet1.inp, odet2.inp, odet3.inp, odet4.inp, odet1.out, odet2.out, odet3.out, odet4.out], style='stack') 
 
 
 
 
     ###### SAVE DATA! ######
 
-	# output csv of timetags 
+	# output csv of timetags `
 	datahead = ['times', 'freq', 'hg', 'occ', 'pos', 'tran', 'wg', 'detphotno']
 	data = [ [timetags['times'][i], timetags['modes'][i][0], timetags['modes'][i][1], timetags['modes'][i][2], timetags['modes'][i][3], timetags['modes'][i][4], timetags['modes'][i][5], timetags['detno'][i]] for i in range(len(timetags['times']))  ] 
 	
