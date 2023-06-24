@@ -332,19 +332,9 @@ if __name__=='__main__':
 	for wgdelay in delays:
 		wgdelay.delay = 70
 		
-	# wdms = [ wdm1, wdm2, wdm3, wdm4] 
-	# for wdm in wdms:
-		# wdm.delay = 10
-		
 	spatwgs = [wg00,wg01,wg10,wg11]
 	for wg in spatwgs:
 		wg.delay = 40
-		
-	
-	# hwirets = [hwiret2,hwiret3,hwiret4,hwiret5]
-	# for hwire in hwirets:
-		# hwire.delay = 10 
-		
 		
 	hwires0.delay = hwiret2.delay  
 	hwires1.delay = hwires0.delay 
@@ -367,13 +357,13 @@ if __name__=='__main__':
 	
 	
 
-
+	# Prepare simulation routine
 	qsources = [sfwm1, sfwm2, sfwm3, sfwm4]
 	qdets = [hdet1, hdet2, hdet3, hdet4, odet1, odet2, odet3, odet4]
 	reprate = 500
 	for source in qsources:
 		source.reprate = t_plex_time
-		source.xi = 0.18
+		source.xi = 0.45
 		source.lcutoff = 0
 		source.cutoff = 2
 		source.pos = [0,0]
@@ -389,7 +379,7 @@ if __name__=='__main__':
 	logic.hyst = 0.01
 	
 	t_start = 0 
-	t_stop = reprate*1000
+	t_stop = reprate*7
 	t_step = 5
 	
 	bss = [bst11, bst12, bst21, bst22, bst31, bst32, bst41, bst42, bs12_1, bs12_2, bs34_1, bs34_2, bso_1, bso_2]
@@ -409,13 +399,13 @@ if __name__=='__main__':
 					t_step = t_step, 
 					verbose = False,
 					in_time_funcs = {
-						laser1.P: pulsgaus_plex(10., t_plex_time, 5, 4, 2, 20),
+						laser1.P: pulsgaus_plex(10., t_plex_time, 10, 4, 2, 20),
 						laser1.clk: square(0, 1, t_plex_time),
-						laser2.P: pulsgaus_plex(10., t_plex_time, 5, 4, 2, 20),
+						laser2.P: pulsgaus_plex(10., t_plex_time, 10, 4, 2, 20),
 						laser2.clk: square(0, 1, t_plex_time),
-						laser3.P: pulsgaus_plex(10., t_plex_time, 5, 4, 2, 20),
+						laser3.P: pulsgaus_plex(10., t_plex_time, 10, 4, 2, 20),
 						laser3.clk: square(0, 1, t_plex_time),
-						laser4.P: pulsgaus_plex(10., t_plex_time, 5, 4, 2, 20),
+						laser4.P: pulsgaus_plex(10., t_plex_time, 10, 4, 2, 20),
 						laser4.clk: square(0, 1, t_plex_time),
 						})
 
@@ -423,17 +413,19 @@ if __name__=='__main__':
 
 	[cstate, qstate_r, timetags] = sim.run()
 	
-	# print('\nqstate is:')
-	# arch.qfunc.printqstate(qstate_r[-1])
-	# print('\n')
+	# Look at the results
+	
+	print('\nqstate is:')
+	arch.qfunc.printqstate(qstate_r[-1])
+	print('\n')
 
-	# print(f"Computed {len(sim.times)} time steps.")
-	# print("Final state is:")
-	# print_state(sim.time_series[-1])	
+	print(f"Computed {len(sim.times)} time steps.")
+	print("Final state is:")
+	print_state(sim.time_series[-1])	
 	
-	# print(timetags)
+	print(timetags)
 	
-	#plot time series	
+	# plot time series	
 	# sim.plot_timeseries(ports=[laser1.clk,
 								# sfwm1.inp, 
 								# wdm1.in0,
@@ -451,29 +443,29 @@ if __name__=='__main__':
 								# bso_2.in0,
 								# odet3.inp,odet3.out], style='stack') 
 
-	# sim.plot_timeseries(ports=[sfwm1.inp,
-								# logic.clkis,
-								##logic.clkl,
-								# logic.in0,
-								# logic.in1,
-								# logic.in2,
-								# logic.in3,
-								# ps12.phi,
-								# pso.phi,
-								##logic.lastbin,
-								# pst1.phi,
-								# pst2.phi,
-								# pst3.phi,
-								# pst4.phi,
-								# logic.storedo0,
-								# logic.storedo1,
-								# logic.storedo2,
-								# logic.storedo3,
-								# odet1.out,
-								# odet2.out,
-								# odet3.out,
-								# odet4.out,
-								# ], style='stack') 
+	sim.plot_timeseries(ports=[sfwm1.inp,
+								logic.clkis,
+								#logic.clkl,
+								logic.in0,
+								logic.in1,
+								logic.in2,
+								logic.in3,
+								ps12.phi,
+								pso.phi,
+								#logic.lastbin,
+								pst1.phi,
+								pst2.phi,
+								pst3.phi,
+								pst4.phi,
+								logic.storedo0,
+								logic.storedo1,
+								logic.storedo2,
+								logic.storedo3,
+								odet1.out,
+								odet2.out,
+								odet3.out,
+								odet4.out,
+								], style='stack') 
 								
 	# sim.plot_timeseries(ports=[sfwm1.inp,
 								# odet1.inp,
@@ -517,16 +509,16 @@ if __name__=='__main__':
 			writer.writerows(detdats[i])
 			
     # output classical data stream
-	# cdata = []		
-	# for i in range(len(sim.time_series)):		
-		# l = [{'kind':str(p.kind),'port name':str(p.local_name),'block name':str(p.block.name),'port':p,'value':v} for p,v in sim.time_series[i].items()]
-		# l.sort(key=(lambda e : (e['block name'],e['kind'],e['port name'])))
-		# cdata.append(   [e['value'] for e in l]  )
-		# classical_datahead = [str(e['port']) for e in l]
+	cdata = []		
+	for i in range(len(sim.time_series)):		
+		l = [{'kind':str(p.kind),'port name':str(p.local_name),'block name':str(p.block.name),'port':p,'value':v} for p,v in sim.time_series[i].items()]
+		l.sort(key=(lambda e : (e['block name'],e['kind'],e['port name'])))
+		cdata.append(   [e['value'] for e in l]  )
+		classical_datahead = [str(e['port']) for e in l]
 			
-	# filename_globaltags = 'classica__T=' + str(t_stop) + '__dt=' + str(t_step) + '__R=' + str(reprate)
-	# with open(os.path.join(save_path,filename_globaltags+'___classical data.csv') , 'w', encoding='UTF8', newline='') as f:
-		# writer = csv.writer(f)
-		# writer.writerow(classical_datahead)
-		# writer.writerows(cdata)
+	filename_globaltags = 'classica__T=' + str(t_stop) + '__dt=' + str(t_step) + '__R=' + str(reprate)
+	with open(os.path.join(save_path,filename_globaltags+'___classical data.csv') , 'w', encoding='UTF8', newline='') as f:
+		writer = csv.writer(f)
+		writer.writerow(classical_datahead)
+		writer.writerows(cdata)
 			

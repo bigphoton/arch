@@ -594,7 +594,7 @@ class FourTimeSpacePlexModel(SymbolicModel):
 		# Clock	
 		c1 = self.in_voltage_ports[-2]
 		c2 = self.in_voltage_ports[-3]
-		clk = sympy.Piecewise(( (self.in_voltage_ports[-1] + 1) % 5, c1 < c2), 
+		clk = sympy.Piecewise(( (self.in_voltage_ports[-1] + 1) % 10, c1 < c2), 
 								(self.in_voltage_ports[-1], True))
 
 		clko_exprs = {self.out_voltage_ports[-2] : self.in_voltage_ports[-3]  }
@@ -604,7 +604,7 @@ class FourTimeSpacePlexModel(SymbolicModel):
 		firstbin = stepclock*2 < 1.
 		notlastbin  = stepclock/2.3 < 1.
 		lastbin  = stepclock/2.3 > 1.
-		finalbin = stepclock/3.5 > 1
+		finalbin = stepclock/8.5 > 1
 			
 		# Space
 		outp1 = sympy.Piecewise((0, (  (2*storeds[0]>storeds[0]) ) ), 

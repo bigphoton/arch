@@ -84,8 +84,8 @@ class QuantumNumericalModel:
 			if sum(vec['occ']) > 0:		#don't bother with vacuum
 				occs_plus1 = [occ+1 for occ in vec['occ']]  # for correct coutning with range()
 				occs = vec['occ']
-				
-				vec_comp_names = [vec['wg'][i].split('_') for i in range(len(occs_plus1))] # which components  are we in? take from qstate
+				# which components  are we in? take from qstate
+				vec_comp_names = [vec['wg'][i].split('_') for i in range(len(occs_plus1))] 
 				vec_comp_names = [comp[0] for comp in vec_comp_names] #get first part
 				vec_comps_set = [comp for comp in self.blocks if comp.name in vec_comp_names]
 				vec_comps = []
@@ -146,8 +146,8 @@ class QuantumNumericalModel:
 		for _,det_coord in enumerate(photon_det_event_coords):	   # get mode labels of detected photons
 			for key in sorted(qstate[det_coord[0]].keys() - ['amp'] ):
 				det_photon_modelabels[_].append (qstate[det_coord[0]][key][det_coord[1]])
-
-		det_photon_modelabels_unq = set(tuple(i) for i in det_photon_modelabels) # which photons are the same and being detected?
+		# which photons are the same and being detected?
+		det_photon_modelabels_unq = set(tuple(i) for i in det_photon_modelabels) 
 
 
 
@@ -202,8 +202,10 @@ class QuantumNumericalModel:
 			timetags['times'].append(t)
 			
 			photno = outcome_modes[detection_result][2]   
-			phottran = outcome_modes[detection_result][4]  # all loss is applied at detection stage by keeping track of total loss each photon has experienced, in vec['tran'] 
-			photno_probs = [sp.special.binom(photno,i) * phottran**i * (1 - phottran)**(photno-i) for i in range(photno+1)]  # lost photon distribution is binomial
+			# all loss is applied at detection stage by keeping track of total loss each photon has experienced, in vec['tran'] 
+			phottran = outcome_modes[detection_result][4]  
+			# lost photon distribution is binomial
+			photno_probs = [sp.special.binom(photno,i) * phottran**i * (1 - phottran)**(photno-i) for i in range(photno+1)]  
 			loss_result = np.random.choice(len(photno_probs), 1, p=photno_probs)[0]	 # pick with random number
 			timetags['detno'].append(loss_result)  # save data
 
@@ -211,8 +213,9 @@ class QuantumNumericalModel:
 
 		if verbose:
 			print('—————————   VACUUM WAS DETECTED HERE! result index was: ', detection_result)
-		
-		qstate = [qstate[i] for i in state_collapse_compononent_idxs[detection_result]]  # does the collapse, keeps only the part of wavefunction that had the detector photon in it
+			
+		# does the collapse, keeps only the part of wavefunction that had the detector photon in it
+		qstate = [qstate[i] for i in state_collapse_compononent_idxs[detection_result]]  
 
 
 
