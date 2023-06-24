@@ -41,7 +41,8 @@ class Model(abc.ABC):
 	@classmethod
 	def compound(cls, name, models, connectivity):
 		"""
-		Method to be implemented by subclasses. Subclasses should call the `compound` method of `super` if they are unable to compound the input models (see snippet below).
+		Method to be implemented by subclasses. Subclasses should call the `compound` method of `super` 
+		if they are unable to compound the input models (see snippet below).
 		
 		try:
 			<Subclass compounding code here>
@@ -126,13 +127,13 @@ class NumericModel(Model):
 		out = out_func(self.default_input_state).keys()
 		described_out_ports = set(out_func(self.default_input_state).keys())
 		
-		if not set(self.out_ports).issubset(described_out_ports):
-			print(self.out_ports)
-			print(described_out_ports)
-			raise AttributeError("Model output ports do not match ports"
-						" described by out_func. "
-						"Ports missing from `out_func` are {:}. ".format(
-							[p for p in self.out_ports if p not in described_out_ports]) )
+		# if not set(self.out_ports).issubset(described_out_ports):
+			# print(self.out_ports)
+			# print(described_out_ports)
+			# raise AttributeError("Model output ports do not match ports"
+						# " described by out_func. "
+						# "Ports missing from `out_func` are {:}. ".format(
+							# [p for p in self.out_ports if p not in described_out_ports]) )
 		
 		self.out_func = out_func
 	
@@ -173,15 +174,7 @@ class NumericModel(Model):
 		return NumericModel(name=name, ports=ex_ports, out_func=out_func)
 
 
-class QuantumModel(Model):
-	"""
-	General quantum model.
 
-	Todo: global quantum model, handles symbolic state vectors as dictionary, propogates in time
-	
-	This can be refactored from methods of simulation object - current implementation is un-arch-like
-	JCA 2023
-	"""
 
 
 class SymbolicModel(Model):
@@ -292,6 +285,8 @@ class SymbolicModel(Model):
 ## UNSORTED ##
 ##############
 
+
+		
 
 import sympy
 from sympy import Matrix, sqrt, I, exp
@@ -485,6 +480,8 @@ class SourceModel(SymbolicModel):
 		self.properties.add("source")
 		
 		self.out_optical_ports = [p for p in self.out_ports if p.kind == port.kind.optical]
+		
+		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]
 
 
 class DetectorModel(SymbolicModel):
@@ -572,7 +569,81 @@ class FourChLogPlexModel(SymbolicModel):
 		else:
 			self.out_exprs = {op:oe for op,oe in zip(self.out_voltage_ports, 0.)   }
 				
+
+
+
 				
-		# self.out_exprs = {op:oe for op,oe in zip(self.out_voltage_ports, plexU*Matrix(self.in_voltage_ports))  }
-		# self.out_exprs = {op:oe for op,oe in 
-				# zip(self.out_optical_ports, self.U * Matrix(self.in_optical_ports) ) }
+				
+class FourTimeSpacePlexModel(SymbolicModel):
+	"""
+	Model for four-channel multiplexing logic
+	JCA 2023
+	"""
+	
+	def define(self, **kwargs):
+		super().define(**kwargs)
+		
+		self.properties.add("logic")
+		
+		self.in_voltage_ports = [p for p in self.in_ports if p.kind == port.kind.voltage]
+		self.out_voltage_ports = [p for p in self.out_ports if p.kind == port.kind.voltage]
+		
+		storeds = [self.in_voltage_ports[4], self.in_voltage_ports[5], self.in_voltage_ports[6], self.in_voltage_ports[7]]
+		photons = [self.in_voltage_ports[0], self.in_voltage_ports[1], self.in_voltage_ports[2], self.in_voltage_ports[3]]
+
+		# Clock	
+		c1 = self.in_voltage_ports[-2]
+		c2 = self.in_voltage_ports[-3]
+		clk = sympy.Piecewise(( (self.in_voltage_ports[-1] + 1) % 5, c1 < c2), 
+								(self.in_voltage_ports[-1], True))
+
+		clko_exprs = {self.out_voltage_ports[-2] : self.in_voltage_ports[-3]  }
+		clks_exprs = {self.out_voltage_ports[-1] : clk  }
+			
+		stepclock = (self.in_voltage_ports[-1])
+		firstbin = stepclock*2 < 1.
+		notlastbin  = stepclock/2.3 < 1.
+		lastbin  = stepclock/2.3 > 1.
+		finalbin = stepclock/3.5 > 1
+			
+		# Space
+		outp1 = sympy.Piecewise((0, (  (2*storeds[0]>storeds[0]) ) ), 
+								(0, (  (2*storeds[3]>storeds[3]) ) ), 
+								(1, (  (2*storeds[1]>storeds[1]) ) ), 
+								(1, (  (2*storeds[2]>storeds[2]) ) ), 
+								(0, True))*np.pi
+								
+		outp2 = sympy.Piecewise((0, (  (2*storeds[0]>storeds[0]) ) ), 
+								(0, (  (2*storeds[1]>storeds[1]) ) ), 
+								(1, (  (2*storeds[2]>storeds[2]) ) ), 
+								(1, (  (2*storeds[3]>storeds[3]) ) ),  
+								(0, True))*np.pi
+								
+		s_outs = {op:oe for op,oe in zip(self.out_voltage_ports[0:2], [outp1, outp2])  }
+								
+								
+		# Time
+		switchstates = [sympy.Piecewise((0,  ((notlastbin) & (photons[i] > 0.5))),
+										(1,  ((storeds[i] > 0.5) & (notlastbin))), 
+										(1,  ((lastbin) & (photons[i] > 0.5))),
+										(0,  ((lastbin) & (photons[i] < 0.5) & (storeds[i] > 0.5))),
+										(0,  ((lastbin) & (photons[i] < 0.5))),
+										(1,  True))*np.pi for i in range(4)]		
+										
+		storeds = [sympy.Piecewise( 
+									(1,  ((notlastbin) & (photons[i] > 0.5))),
+									(1,  ((storeds[i] > 0.5) & (firstbin))), 
+									(0,  finalbin),
+									(1,  ((storeds[i] > 0.5) & (notlastbin))), 
+									(1,  ((lastbin)  & (photons[i] > 0.5))),
+									(1,  (lastbin) & (storeds[i] > 0.5)),
+									# (1,  ((lastbin)  & (photons[i] < 0.5))),
+									(0, True)) for i in range(4)]
+		
+		stored_outs = {op:oe for op,oe in zip(self.out_voltage_ports[6:10], storeds )   } 
+		t_outs = {op:oe for op,oe in zip(self.out_voltage_ports[2:6], switchstates )   }
+		# lastbin_exprs = {op:oe for op,oe in zip(self.out_voltage_ports[-3], lastbin )   }
+
+
+		self.out_exprs = s_outs | t_outs | stored_outs | clko_exprs | clks_exprs # | lastbin_exprs
+				

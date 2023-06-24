@@ -35,7 +35,7 @@ class Waveguide(Block):
 		
 		r = self.add_port(name='eta', kind=port.kind.real, direction=port.direction.inp, default = eta)
 
-		M = Matrix([[sqrt(r)]])
+		M = Matrix([[1.]])
 		
 		self.add_model(Linear('waveguide '+self.name, block=self, unitary_matrix=M))
 		

@@ -116,7 +116,8 @@ def print_state(state):
 		assert all({type(k) == var for k in state})
 		
 		# Put state kvps in a list, sort appropriately
-		l = [{'kind':str(p.kind),'port name':str(p.local_name),'block name':str(p.block.name),'port':p,'value':v} for p,v in state.items()]
+		l = [{'kind':str(p.kind),'port name':str(p.local_name),
+										'block name':str(p.block.name),'port':p,'value':v} for p,v in state.items()]
 		
 		l.sort(key=(lambda e : (e['block name'],e['kind'],e['port name'])))
 		

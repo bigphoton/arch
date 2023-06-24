@@ -72,7 +72,7 @@ def sqz_vac_hack(xi, wgs, pos = [0,0], freq = ['sig', 'idl'], hg = [0, 0],  cuto
 	JCA 2023
 	"""
 	sqz_state = []
-	amp = np.cdouble(0.999)
+	amp = np.cdouble(0.8)
 	sqz_state.append({'amp' : amp, 
 				'wg' : [wgs[0], wgs[1]], 
 				'occ' : [1,1],
@@ -98,7 +98,8 @@ def sqz_vac_hack(xi, wgs, pos = [0,0], freq = ['sig', 'idl'], hg = [0, 0],  cuto
 	
 def sps(amp = 1, wgs = 'wg1', pos = 0, freq = 'idl', hg = 0):
 	"""
-	Generates a idealised quasi-deterministic single photon state with amplitude amp in the dictionary format in component wg at position pos 
+	Generates a idealised quasi-deterministic single photon state with amplitude amp 
+	in the dictionary format in component wg at position pos 
 	JCA 2023
 	"""
 	sps_state = []
@@ -188,7 +189,8 @@ def genfockslist(k, n):
 
 def gendictoutputs(wg_mode_names, ivec, focks, outputpos):
 	"""
-	Generates a list of dictionarys composing a set of fock states for a given set of waveguide modes fock states as list, as given by the above genfockslist
+	Generates a list of dictionarys composing a set of fock states for a given set of 
+	waveguide modes fock states as list, as given by the above genfockslist
 	uses the above 
 	JCA 2023
 	"""
@@ -200,7 +202,8 @@ def gendictoutputs(wg_mode_names, ivec, focks, outputpos):
 		occs.append(fock_occ)
 		
 		fock_pos = np.nonzero(fock > 0)[0]
-		outpdict_list.append( {'wg' : [wg_mode_names[index] for index in fock_pos], 'occ' : fock_occ, 'pos' : [outputpos for i in range(len(fock_occ))]  }  )
+		outpdict_list.append( {'wg' : [wg_mode_names[index] for index in fock_pos], 
+							  'occ' : fock_occ, 'pos' : [outputpos for i in range(len(fock_occ))]  }  )
 		# for key in ivec.keys() - ['amp', 'wg', 'occ', 'pos']:
 			# outpdict_list[-1][key] = ivec[key]
 	return outpdict_list
@@ -221,7 +224,9 @@ def q_simplify (qstate, tol = 1e-10, verbose = False):
 		mylabels = [ qstate[kk][key] for key in sorted((qstate[kk].keys() - ['amp']), reverse = True)]
 		keylist = [ key for key in sorted((qstate[kk].keys() - ['amp']), reverse = True)]
 		mysortedlabels2 = list(zip(*sorted(zip(*mylabels), key=operator.itemgetter(0,1,2,3,4), reverse = True))) 
-		for i in range(len(qstate[kk].keys() - ['amp'])): #degeneracy of representation / exchange symmetry (e.g. [wg0, wg0], [1,1], [idl, sig] <-> [wg0, wg0], [1,1], [sig, idl] )
+		# degeneracy of representation / exchange symmetry 
+		# (e.g. [wg0, wg0], [1,1], [idl, sig] <-> [wg0, wg0], [1,1], [sig, idl] )
+		for i in range(len(qstate[kk].keys() - ['amp'])): 
 			qstate[kk][keylist[i]] = list(mysortedlabels2[i])
 
   
@@ -292,8 +297,8 @@ def cleanzeroes(qstate, tol = 1e-10):
 	for j,vec in enumerate(qstate):
 		qstate[j]['pos'] = [ pos for pos in qstate[j]['pos'] if pos != -1] #remove extraneous pos indexes
 				
-				
-	rs1 = ''.join(random.choice(string.ascii_letters+string.digits) for _ in range(3)) # add vacuum state back in if empty state
+	# add vacuum state back in if empty state
+	rs1 = ''.join(random.choice(string.ascii_letters+string.digits) for _ in range(3)) 
 	vacstate =  {'amp' : vacampsum,
 				 'wg'   : [vacwg], 
 				 'occ'   : [0],
@@ -386,7 +391,8 @@ def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose =
 		print('no modes in common between vec and U')
 		return qstate
 
-	# process each vector (dictionary) in input state one by one, later run over all possible output vecs and compute transition amplitude
+	# process each vector (dictionary) in input state one by one, 
+	# later run over all possible output vecs and compute transition amplitude
 	outputstate = []
 	for ivec in qstate:
 		vecwgs = ivec['wg']
@@ -424,7 +430,8 @@ def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose =
 				if vecwgs[idx] in myU_modes:
 					modelabels.append([])
 					wg_ccomp.append(wg)
-					activemodelabels = ivec.keys() - ['amp', 'occ', 'wg']		   # any mode label can provide (non)orthogonality. 'wg' is inbuilt to unitary it applies to
+					# any mode label can provide (non)orthogonality. 'wg' is inbuilt to unitary it applies to
+					activemodelabels = ivec.keys() - ['amp', 'occ', 'wg']		   
 					for key in activemodelabels:
 						modelabels[ridx].append (ivec[key][idx])
 					if verbose:
@@ -444,8 +451,10 @@ def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose =
 			g_connex_compnts = [list(c) for c in sorted(nx.connected_components(g), key=len, reverse=True)]
 			if verbose:
 				print('\nconnected components: ',g_connex_compnts)	
-			# connected components of state will interfere. There may be many independent ones. These are handled independently and joined together later with concat_vec() (tensor product)
-			# computes permanents of many small (typically 2x2) matrices, rather than permanents of sparse, larger matrices.
+			# connected components of state will interfere. There may be many independent ones. 
+			# These are handled independently and joined together later with concat_vec() (tensor product)
+			# computes permanents of many small (typically 2x2) matrices, 
+			#	rather than permanents of sparse, larger matrices.
 
 			cc_states = [[] for ccomp in g_connex_compnts]
 			for cc_states_idx, ccomp in enumerate(g_connex_compnts) :
@@ -507,7 +516,8 @@ def qcruncher(qstate, U, myU_modes, outputfocks = None, thresh = 0.01, verbose =
 						'occ' : ovec['occ']}
 
 						for idx,modelabel in enumerate(list(activemodelabels)):
-							outputvecdict[modelabel] = [modelabels[list(ccomp)[0]][idx] for _ in range(len(list(ovec['wg'])))]
+							outputvecdict[modelabel] = [modelabels[list(ccomp)[0]][idx] 
+																				for _ in range(len(list(ovec['wg'])))]
 					   
 						cc_states[cc_states_idx].append(outputvecdict)
 

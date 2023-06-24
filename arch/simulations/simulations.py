@@ -16,6 +16,7 @@ import itertools
 
 import importlib.util
 from arch.connectivity import Connectivity
+from arch.models.qmodel import QuantumNumericalModel
 import arch.qfunc
 try:
 	import thewalrus
@@ -143,7 +144,8 @@ class DynamicalSimulator(Simulator):
 				axs[i].plot(self.times, [norm(p,s[p]) for s in self.time_series])
 				
 		else:
-			raise AttributeError("Plot style '{:}' not recognised. See help(plot_timeseries) for available options".format(style))
+			raise AttributeError("Plot style '{:}' not recognised. See help(plot_timeseries) for available options"
+																										.format(style))
 		
 		try:
 			plt.tight_layout()
@@ -159,339 +161,6 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 	Time-stepping simulator that does no model compounding, handles
 	continuous-time delays on each block.
 	"""
-	
-	
-	
-	def firesource(self, qstate, source, idx):
-		"""
-		fires quantum photonic photon sources. Currently only two-mode photon pair source and quasi-deterministic single photon source are implemented
-		should take source variables from DynamicalSimulator
-		JCA 20223
-		"""
-		source_name = source.name + '_' + '0'#str(idx)
-		if source.reference_prefix == 'SV':
-			sourcestate = arch.qfunc.sqz_vac_hack(xi = source.xi, 
-																	 pos = [source.pos[0],source.pos[1]], 
-																	 wgs = [source_name, source_name], 
-																	 freq = [source.freq[0], source.freq[1]], 
-																	 hg = [source.hg[0], source.hg[1]], 
-																	 cutoff = source.cutoff,
-																	 lcutoff = source.lcutoff  )
-																	 
-		if source.reference_prefix == 'SPS':
-			sourcestate = arch.qfunc.sps(amp = source.amp, wgs = source_name, pos = source.pos, freq = source.freq, hg = source.hg)	  
-		qstate = arch.qfunc.concat_vec(qstate, sourcestate)
-		qstate = arch.qfunc.cleanzeroes(qstate)
-		return qstate
-		
-		
-				
-		
-	def applyloss_keep_all_lossmodes(self, qstate, crunch_comps, state, verbose):
-		"""
-		depreciated method to unitarily apply loss (exponential sized vector space! do not use)
-		JCA 2023
-		"""
-		for comp in crunch_comps:
-			# if qstate[j]['wg'][i][0:2] != 'L-' and qstate[j]['freq'][i][0:3] != 'vac':
-			# print(qstate[j]['wg'][i])
-			# curr_comp_name, curr_comp_idx = qstate[j]['wg'][i].split('_') # which component are we in? take from qstate
-			# curr_comp = [comp for comp in self.blocks if comp.name == curr_comp_name][0] # find comp in blocks
-			Unp =  np.cdouble(N(comp.model.U.subs(state)))
-			Unp = np.array(Unp)
-			for k in range(len(Unp)):
-				eta = comp.eta
-				rs1 = ''.join(random.choice(string.ascii_letters+string.digits) for _ in range(4)) 
-				U = arch.qfunc.lossU(eta)
-				lossermodes = [comp.name + '_' + str(k), 'L-' + rs1 + '_0']
-				# lossermodes = [comp.name + '_' + str(k), '']
-				qstate = arch.qfunc.qcruncher(qstate, U, lossermodes)   
-		
-		return qstate
-			
-		
-		
-	def applyloss_old(self, qstate, verbose):
-		"""
-		depreciated method to apply loss - nonunitary without explicit loss modes so does not keep normalisation!
-		JCA 2023
-		"""
-		lossvecs=[]
-		vac = qstate[0]
-		for j,vec in enumerate(qstate):
-			if sum(vec['occ']) > 0:		#don't bother with vacuum
-				occs_plus1 = [occ+1 for occ in vec['occ']]  # for correct coutning with range()
-				occs = vec['occ']
-				
-				vec_comp_names = [vec['wg'][i].split('_') for i in range(len(occs_plus1))] # which components  are we in? take from qstate
-				vec_comp_names = [comp[0] for comp in vec_comp_names] #get first part
-				vec_comps_set = [comp for comp in self.blocks if comp.name in vec_comp_names]
-				vec_comps = []
-				idx=0
-				for i in range(len(vec_comp_names)):
-					vec_comps.append(vec_comps_set[idx])
-					if vec_comp_names[i] != vec_comp_names[(i+1) % len(vec_comp_names)] :
-						idx+=1
-						
-				etas = [vec_comps[i].eta for i in range(len(occs_plus1))]
-
-				idxs = [range(occs_plus1[i]) for i in range(len(occs_plus1))]
-				idx_perms = list(itertools.product(*idxs))
-				amp_perms = [ 0 for i in range(np.prod(occs_plus1))]
-				for idx,perm in enumerate(idx_perms):
-					print(j,"	", perm, "	", occs)
-					amp_perms[idx] = [ np.sqrt(sp.special.binom(occs[i], perm[i]) * etas[i]**perm[i] * (1-etas[i])**(occs[i]-perm[i])  ) for i in range(len(occs))] #
-				print(amp_perms)
-				amp_perms = [np.prod(perm) for perm in amp_perms]   # amplitudes for vecs with idx_perms photons in
-				print(amp_perms)
-				for idx,amp in enumerate(amp_perms):
-					addvec = copy.deepcopy(vec)
-					addvec['occ'] = list(idx_perms[idx])
-					addvec['amp'] = amp*vec['amp']
-					addvec['pos'] = [pos if addvec['occ'][idx] > 0 else -1 for idx,pos in enumerate(addvec['pos']) ]
-					lossvecs.append(addvec)
-					
-					
-		qstate =  [vac] + lossvecs 
-		print('\nlossvec:')
-		arch.qfunc.printqstate(qstate)
-		qstate = arch.qfunc.cleanzeroes(qstate) # clean before simplify works better
-		
-		print('\ncleanedzeroes:')
-		arch.qfunc.printqstate(qstate)
-		
-		print('\nsimplified:')
-		qstate = arch.qfunc.q_simplify(qstate)
-		arch.qfunc.printqstate(qstate)
-		
-		
-		return qstate
-		
-		
-			
-		
-	def applydetection(self, qstate, t, timetags, active_dets, photon_det_event_coords, verbose):
-		"""
-		applies quantum measurement - applied when photons hit block with "detector" property
-		JCA 2023
-		"""
-		vacwg = 'V0_0' # corresponds to vacuum in the block connectivity - needed too keep the vacuum state in the model!
-		
-		
-		
-		# what modes are the detected photons in? get their modelabels
-		det_photon_modelabels = [[] for i in range(len(photon_det_event_coords))] 
-		for _,det_coord in enumerate(photon_det_event_coords):	   # get mode labels of detected photons
-			for key in sorted(qstate[det_coord[0]].keys() - ['amp'] ):
-				det_photon_modelabels[_].append (qstate[det_coord[0]][key][det_coord[1]])
-
-		det_photon_modelabels_unq = set(tuple(i) for i in det_photon_modelabels) # which photons are the same and being detected?
-
-
-
-		#for those which are the same, get their amplitudes
-		outcome_modes = []
-		outcome_amps = []
-		idx_of_same_parts = []
-		mode_of_same_parts = []
-	
-		for modelabel in det_photon_modelabels_unq:  
-			idx_of_same_parts.append([photon_det_event_coords[i][0] for i, x in enumerate(det_photon_modelabels) if x == list(modelabel)])
-			mode_of_same_parts.append([photon_det_event_coords[i][1] for i, x in enumerate(det_photon_modelabels) if x == list(modelabel)])
-			outcome_amps.append( [qstate[i]['amp'] for i in idx_of_same_parts[-1]] )
-			outcome_modes.append(modelabel)
-		
-		
-		
-		#what is the prob of no detection? which bits of state does this correspond to? find prob, 
-		idx_of_no_det  = [ x for x in range(len(qstate)) if x not in list(zip(*photon_det_event_coords))[0] ]
-		no_click_prob  = sum([np.abs(qstate[i]['amp'])**2 for i in idx_of_no_det])
-
-
-		# lets compute the probabilities of these events
-		probs = [] 
-		for ampset in outcome_amps:
-			probs.append (sum([np.abs(x)**2 for x in ampset]))
-		probs.append(no_click_prob)				
-		norm = sum(probs)
-		probs = [prob/norm for prob in probs] # numpy function needs normalised probability distributoin
-
-		state_collapse_compononent_idxs = idx_of_same_parts + [idx_of_no_det]
-		state_collapse_mode_idxs = mode_of_same_parts 
-		
-		
-		
-		if verbose == 2: # TODO: implement levels of verbosity
-			print(state_collapse_compononent_idxs)
-			print(state_collapse_mode_idxs)
-			print(outcome_modes)
-			print(probs)
-			print('sum of probs at measurement was:', sum(probs))
-
-
-
-		#collapse the state!
-		clicks = []
-		detection_result = np.random.choice(len(probs), 1, p=probs)[0]  # pick a state for collapse using random number
-		if detection_result in range(len(probs) - 1):
-			if verbose:
-				print('KK-KLICK! - A PHOTON WAS DETECTED HERE! result index was: ', detection_result)
-			timetags['modes'].append(outcome_modes[detection_result])	# append to timtags variable for data storage and ouput
-			timetags['times'].append(t)
-			
-			photno = outcome_modes[detection_result][2]   
-			phottran = outcome_modes[detection_result][4]  # all loss is applied at detection stage by keeping track of total loss each photon has experienced, in vec['tran'] 
-			photno_probs = [sp.special.binom(photno,i) * phottran**i * (1 - phottran)**(photno-i) for i in range(photno+1)]  # lost photon distribution is binomial
-			loss_result = np.random.choice(len(photno_probs), 1, p=photno_probs)[0]	 # pick with random number
-			timetags['detno'].append(loss_result)  # save data
-
-			clicks.append([outcome_modes[detection_result][5], loss_result])
-
-		if verbose:
-			print('—————————   VACUUM WAS DETECTED HERE! result index was: ', detection_result)
-		
-		qstate = [qstate[i] for i in state_collapse_compononent_idxs[detection_result]]  # does the collapse, keeps only the part of wavefunction that had the detector photon in it
-
-
-
-
-		# vector states will still have this photon in it, even thought its been detected! delete them!
-		if detection_result < len(probs) - 1:
-			for j,vec in enumerate(qstate):
-				for key in qstate[j].keys() - ['amp']:
-					qstate[j][key] = [mode for idx,mode in enumerate(qstate[j][key]) if idx != state_collapse_mode_idxs[detection_result][j]  ] #delete detected photon
-					
-			qstate  = [vec for vec in qstate if len(vec['occ']) != 0]  #the above process leaves empty list states, remove!
-		
-		
-		
-		
-		 # add vacuum state back in if empty state
-		if len(qstate) == 0:
-			rs1 = ''.join(random.choice(string.ascii_letters+string.digits) for _ in range(3))
-			qstate.append( {'amp' : np.cdouble(1),
-							'freq' : ['vac_'+rs1],
-							'hg'   : [-1],
-							'pos'   : [-1],
-							'occ'   : [0],
-							'wg'   : [vacwg],
-							'tran': [0]	   } )
-							
-							
-							
-		
-		#normalise
-		new_norm = sum([np.abs(qstate[i]['amp'])**2 for i in range(len(qstate))]) #renormalise
-		for vec in qstate:
-			vec['amp'] = vec['amp']/np.sqrt(new_norm)
-		qstate = arch.qfunc.cleanzeroes(qstate)
-		
-		
-		
-		# hand back any detection events that still need processing, then we run this routine again
-		active_dets = []
-		photon_det_event_coords = []
-		# print(qstate)
-		for j,vec in enumerate(qstate):
-			for i,pos in enumerate(qstate[j]['pos']):
-				curr_comp_name, curr_comp_idx = qstate[j]['wg'][i].split('_') # which component are we in? take from qstate
-				curr_comp = [comp for comp in self.blocks if comp.name == curr_comp_name][0] # find comp in blocks
-				if 'detector' in curr_comp.model.properties:
-					photon_det_event_coords.append([j,i])
-					active_dets.append(curr_comp)	# detectors that might fire - measurements to perform 
-					print('photon hit detector at vec component ', [j,i])
-
-
-
-		return qstate,timetags,clicks,active_dets,photon_det_event_coords
-	
-	
-	
-	
-	
-	def applyunitaries(self, qstate, crunch_comps, state, verbose):
-		"""
-		applies unitaries to quantum state in components that have them
-		JCA 2023
-		"""
-		# if verbose:
-			# print('\ncomponents to crunch: ', crunch_comps)
-
-		for comp in crunch_comps:
-			if comp.name[0:3] != 'WDM':
-				crunchmodes = []
-				Unp =  np.cdouble(N(comp.model.U.subs(state)))
-				Unp = np.array(Unp)
-				for k in range(len(Unp)):
-					crunchmodes.append(comp.name + '_' + str(k))
-
-				qstate = arch.qfunc.qcruncher(qstate, Unp, crunchmodes)   
-				
-		#hack to make WDM split photons TODO: FIXME add model for WDM - make unitarys apply to arbitrary mode index
-		for j,vec in enumerate(qstate):
-			for i,pos in enumerate(qstate[j]['pos']):
-				if qstate[j]['wg'][i][0] != 'L':
-					curr_comp_name, curr_comp_idx = qstate[j]['wg'][i].split('_') # which component are we in? take from qstate
-					curr_comp = [comp for comp in self.blocks if comp.name == curr_comp_name][0] # find comp in blocks
-					if curr_comp_name[0:3] == 'WDM':
-						if qstate[j]['freq'][i] == 'i':
-							moder = qstate[j]['wg'][i][0:-1]
-							qstate[j]['wg'][i] = moder + '1'
-		
-		return qstate
-		
-		
-	
-	
-	
-	def propagate(self, qstate, lconns, verbose):
-		"""
-		propogates photons 'pos' index with time, connects quantum states to next component
-		JCA 2023
-		"""		  
-				  
-		for j,vec in enumerate(qstate):
-			for i,pos in enumerate(qstate[j]['pos']):
-				# 'wg' takes form COMPONENTx_y where x is block index, y is mode (output port) index 
-				curr_comp_name, curr_comp_idx = qstate[j]['wg'][i].split('_') # which component are we in?
-				if pos >= 0: 
-					curr_comp_idx = int(curr_comp_idx)
-				curr_comp = [comp for comp in self.blocks if comp.name == curr_comp_name]
-				
-				if curr_comp != []:
-					curr_comp = curr_comp[0]
-					endcompq = math.isclose(qstate[j]['pos'][i] , curr_comp.delay, abs_tol = 0.1*self.t_step)		
-				   
-					if endcompq:# we have reached the end of a component
-						# what output port are we connected to? we must find it in conns
-						connected_blocks = []
-						outport = curr_comp.out_ports[curr_comp_idx]
-						conto = [pair for pair in lconns if pair.count(outport) > 0][0]
-						nex_port = conto[(conto.index(outport) + 1) % 2]
-						nex_comp = nex_port.block
-						out_port_idx = nex_port.block.in_ports.index(nex_port)
-						nex_comp_name = nex_port.block.name + '_' + str(out_port_idx)
-						# if verbose:
-							# print('\ncomponent ',curr_comp.name,' of index ', i, ' ended at time: ', t)
-							# print('connection: ',conto)
-							# print('next component: ',nex_comp)
-							# print('next component input port: ',nex_port)
-							# print('next component input port index: ',out_port_idx)
-						
-						#propagate to next component in connectivity
-						qstate[j]['pos'][i] = 0
-						qstate[j]['wg'][i] = nex_comp_name
-						qstate[j]['tran'][i] = qstate[j]['tran'][i] * curr_comp.eta
-
-
-		for vec in qstate: # incrememnt 'pos'
-			vec['pos'] = [pos + self.t_step if vec['occ'][idx] > 0 else -1 for idx,pos in enumerate(vec['pos']) ]
-
-
-		return qstate
-		
-		
-		
 	
 	def run(self):
 		con = self.connectivity
@@ -520,8 +189,14 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 			
 		from arch.port import print_state
 		
-		qstate = arch.qfunc.sqz_vac(0.001, ['V0_0','V0_0'], pos = [-1,-1], 
-															freq = ['s', 'i'], hg = [0, 0],  cutoff = 1, lcutoff = 0)
+		
+		
+		qm = QuantumNumericalModel(self.blocks, lconns, self.t_step)
+		
+		q_state_history = [qm.qstate]
+		
+		# qstate = arch.qfunc.sqz_vac(0.001, ['V0_0','V0_0'], pos = [-1,-1], 
+										# freq = ['s', 'i'], hg = [0, 0],  cutoff = 1, lcutoff = 0)
 		# print(qstate)
 		# Step through times
 		timetags = {'times' : [], 'modes' : [], 'detno' : [] }
@@ -557,9 +232,8 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 			# Propagate values along connectivity
 			state |= {pi:delayed_port_value(po) for po,pi in con if po in state}
 			
-
-
-
+					
+					
 					
 					#####################
 					#### QUANTUM SIM ####
@@ -567,106 +241,103 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 					
 					
 			### SOURCES ###
-				
+			# logic = [comp for comp in self.blocks if comp.reference_prefix == "LOG"][0]
+			# print(logic.clkl.free_symbols)
+			# print(logic.clkl.is_number)
+			# print(logic.clki.data)
+			# print(logic.clkis.data)
+			
 			for idx,source in enumerate(self.q_sources):
 				if state[source.out] > 1.4: # this is a hack - need to implement model for quantum sources
-					qstate = self.firesource(qstate, source, idx)
-					print("SOURCE FIRED at time t: ", t)
-			qstate = list(filter(lambda x: np.sum(x['occ']) <= self.photon_no_cutoff, qstate)) # remove higher photon numbers beyond cutoff
-				
-				
-			### PROPAGATE ###
-			qstate = self.propagate(qstate, lconns, self.verbose)
-			
-			
-
-			
-
-			### APPLY DETECTION ###
-			
-			# reset dead detectors if deadcounter > deadtime		  
-			for det in self.q_dets: 
-				deadcounters[det.name] += self.t_step
-				if deadcounters[det.name] > det.deadtime:
-					state[det.click_in] = 0
+					qm.qstate = qm.firesource(qm.qstate, source, idx)
+					# print("SOURCE FIRED at time t: ", t)
 					
-
+				# remove higher photon numbers beyond cutoff
+				qm.qstate = list(filter(lambda x: np.sum(x['occ']) <= self.photon_no_cutoff, qm.qstate)) 
+			
+			# print(qm.qstate)
+			# print(qm.qstate[0]['pos'])
+			if not (len(qm.qstate) ==1 & (qm.qstate[0]['wg'][0:2] == [-1])):
 		
-			#do any detectors have photons hitting them?
-			# which components are we in? ###
-			crunch_comps = set()  # used in applying unitaries
-			photon_det_event_coords=[]
-			active_dets = []
-			clicks = []
-			
-			for j,vec in enumerate(qstate):
-				for i,pos in enumerate(qstate[j]['pos']):
-					if qstate[j]['wg'][i][0] != 'L':
-					
-						curr_comp_name, curr_comp_idx = qstate[j]['wg'][i].split('_') # which component are we in? 
-																					  # take from qstate
-						curr_comp = [comp for comp in self.blocks if comp.name == curr_comp_name][0] # find comp in blocks
+
+				### APPLY DETECTION ###
+				# reset dead detectors if deadcounter > deadtime		  
+				for det in self.q_dets: 
+					deadcounters[det.name] += self.t_step
+					if deadcounters[det.name] > det.deadtime:
+						state[det.click_in] = 0
 						
-						if 'detector' in curr_comp.model.properties:
-							photon_det_event_coords.append([j,i])
-							active_dets.append(curr_comp)	# detectors that might fire - measurements to perform 
-							# print('photon hit detector at vec component ', [j,i])
-						else:
-							crunch_comps.add(curr_comp)	# where are the photons? components to be churned through in 
-														# applying unitaries
+				#do any detectors have photons hitting them?
+				# which components are we in? ###
+				crunch_comps = set()  # used in applying unitaries
+				photon_det_event_coords=[]
+				active_dets = []
+				clicks = []
+				
+				for j,vec in enumerate(qm.qstate):
+					for i,pos in enumerate(qm.qstate[j]['pos']):
+						if qm.qstate[j]['wg'][i][0] != 'L':
+						
+							curr_comp_name, curr_comp_idx = qm.qstate[j]['wg'][i].split('_') # which component are we in? 
+																							 # take from qstate
+							 # find comp in blocks
+							curr_comp = [comp for comp in self.blocks if comp.name == curr_comp_name][0] 
 							
-			#apply dark counts TODO: needs real units, and to be method of the detector block
-			this_tick_clicks = []			
-			pdarkcount = 0.000001
-			for det in self.q_dets:
-				if pdarkcount > np.random.random(1):
-					dclick = [(det.name +'_1'), 1]
-					timetags['modes'].append(('d','d','d','d','d',det.name +'_1'))
-					timetags['times'].append(t)
-					timetags['detno'].append(1)  
-					this_tick_clicks.append(dclick)
+							if 'detector' in curr_comp.model.properties:
+								photon_det_event_coords.append([j,i])
+								active_dets.append(curr_comp)	# detectors that might fire - measurements to perform 
+								# print('photon hit detector at vec component ', [j,i])
+							else:
+								crunch_comps.add(curr_comp)	# where are the photons? components to be churned through in 
+															# applying unitaries
+								
+				#apply dark counts TODO: needs real units, and to be method of the detector block
+				this_tick_clicks = []			
+				pdarkcount = 0.000001
+				for det in self.q_dets:
+					if pdarkcount > np.random.random(1):
+						dclick = [(det.name +'_1'), 1]
+						timetags['modes'].append(('d','d','d','d','d',det.name +'_1'))
+						timetags['times'].append(t)
+						timetags['detno'].append(1)  
+						this_tick_clicks.append(dclick)
 
-			while active_dets != []:
-				qstate, timetags, clicks, active_dets, photon_det_event_coords = self.applydetection(qstate, t, 
-				timetags, active_dets, photon_det_event_coords, self.verbose)
-				this_tick_clicks = this_tick_clicks + clicks
-			
-			#which detectors clicked? forward this to classical state
-			if this_tick_clicks != []:
-				for click in this_tick_clicks:
-					this_click = click[0].split('_')[0] 
-					clickdet  =  [ det for det in self.q_dets if det.name == this_click ][0]
-					# print(clickdet.click_in)
-					# print(state[clickdet.click_in])
-					state[clickdet.click_in] = click[1]
-					# print(state[clickdet.click_in])
-					deadcounters[clickdet.name] = 0
-					
-					
-					
-
+				while active_dets != []:
+					qm.qstate, timetags, clicks, active_dets, photon_det_event_coords = qm.applydetection(qm.qstate, t, 
+					timetags, active_dets, photon_det_event_coords, self.verbose)
+					this_tick_clicks = this_tick_clicks + clicks
 				
-				
-			
-			
-			
+				#which detectors clicked? forward this to classical state
+				if this_tick_clicks != []:
+					for click in this_tick_clicks:
+						this_click = click[0].split('_')[0] 
+						clickdet  =  [ det for det in self.q_dets if det.name == this_click ][0]
+						state[clickdet.click_in] = click[1]
+						deadcounters[clickdet.name] = 0
+						
+						
+				# apply unitaries of components where there are photons
+				# qm.qstate = qm.applyunitaries(qm.qstate, crunch_comps, state, self.verbose)
+					
+				### PROPAGATE ###
+				# propogate qstate forward (apply unitary, move between components, increment 'pos' variable)
+				qm.qstate = qm.propagate(qm.qstate, state, lconns, self.verbose)
 
-				
 
-			if self.verbose:
+			if t % 1000 == 0:
 				print('')
 				print('---- ITERATION COMPLETE, time is: ', t,' ---- qstate printed below ----')
 				print('')
-				arch.qfunc.printqstate(qstate)  
-			# apply unitaries of components where there are photons
-			qstate = self.applyunitaries(qstate, crunch_comps, state, self.verbose)
-			# propogate qstate forwarrd (increment 'pos' variable)
+				arch.qfunc.printqstate(qm.qstate)  
+				
+				
  
 			
 			
 			
-			# Store classical state in time series
+			# Store states in time series
 			state_history.append(state)
+			# q_state_history.append(qm.qstate)
 
 	
 			
@@ -677,7 +348,7 @@ class QuantumDynamicalSimulator(DynamicalSimulator):
 		self.time_series = state_history
 		self.times = ts
 		
-		return state_history, qstate, timetags
+		return state_history, q_state_history, timetags
 		
 	
 	
@@ -920,7 +591,8 @@ class InterferometerSimulator(Simulator):
 							perm=thewalrus.perm(trans_matrix)
 						
 						for m in range(len(input_element)):
-							prefactor=prefactor*(1/math.sqrt(math.factorial(input_element[m])))*(1/math.sqrt(math.factorial(element[m])))
+							prefactor=prefactor*(1/math.sqrt(math.factorial(
+														input_element[m])))*(1/math.sqrt(math.factorial(element[m])))
 						
 						output_amplitudes[k]+=np.around(perm*prefactor, decimals=6)*input_amplitudes[i]
 						

@@ -29,6 +29,28 @@ class LaserCW(Block):
 		
 		self.add_model(SourceModel('laser '+self.name, block=self, out_exprs={out:sqrt(P)*exp(I*phase)} ))
 
+class LaserPulse(Block):
+	"""
+	
+	A laser component. Connect to other optics for classical values. Can be driven in time with in_time_funcs
+	"""
+	reference_prefix = "PULSE"
+	
+	def define(self, Power = 1.0, Reptime = 100, Wavelength= 2000, clkV = 1.):
+		
+		Wavelength = self.add_port(name='lambda', kind=port.kind.real, direction=port.direction.inp, default = Wavelength)
+		
+		P = self.add_port(name='P', kind=port.kind.real, direction=port.direction.inp, default = Power)
+		rep = self.add_port(name='rep', kind=port.kind.real, direction=port.direction.inp, default = Reptime)
+		clk = self.add_port(name='clk', kind=port.kind.real, direction=port.direction.inp, default = clkV)
+		phase = self.add_port(name='phase', kind=port.kind.real, direction=port.direction.inp, default=0.0)
+		
+		out = self.add_port(name='out', kind=port.kind.optical, direction=port.direction.out)
+		clko = self.add_port(name='clko', kind=port.kind.voltage, direction=port.direction.out)
+		
+		self.add_model(SourceModel('laser '+self.name, block=self, out_exprs={out : sqrt(P)*exp(I*phase),
+																			  clko : clk*clkV				} ))
+		
 
 class BasicPhotonPairSource(Block):
 	"""	 
